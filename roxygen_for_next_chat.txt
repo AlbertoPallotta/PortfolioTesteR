@@ -1,0 +1,1401 @@
+### run_backtest
+```r
+#' Run Portfolio Backtest
+#'
+#' @description
+#' Core backtesting engine that simulates portfolio performance over time.
+#' Handles position management, cash tracking, and transaction recording.
+#'
+#' @param prices Data frame with Date column and symbol prices
+#' @param weights Data frame with Date column and portfolio weights
+#' @param initial_capital Starting capital (default: 100000)
+#' @param name Strategy name for reporting (default: 'Strategy')
+#' @param verbose Print detailed transaction info (default: FALSE)
+#' @param stop_loss Optional stop loss percentage as decimal
+#' @param stop_monitoring_prices Optional daily prices for stop monitoring
+#'
+#' @return backtest_result object with performance data and metrics
+#' @export
+#' @examples
+#' # Load sample data
+#' data(sample_prices_weekly)
+#'
+#' # Calculate signals
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weights <- weight_equally(selected)
+#'
+#' # Basic backtest
+#' result <- run_backtest(sample_prices_weekly, weights, initial_capital = 100000)
+#'
+#' # Access results
+#' print(result)
+#' summary(result)
+#' plot(result, type = 'performance')
+#'
+#' # Calculate metrics
+#' metrics <- backtest_metrics(result)
+```
+
+### print.backtest_result
+```r
+#' Print Backtest Results
+#'
+#' @description
+#' S3 method for printing backtest results with key metrics.
+#' Automatically handles warmup period reporting.
+#'
+#' @param x backtest_result object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisible copy of x
+#' @export
+#' @examples
+#' # Create a backtest result to use
+#' data(sample_prices_weekly)
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weights <- weight_equally(selected)
+#' result <- run_backtest(sample_prices_weekly, weights)
+#'
+#' # Print the results
+#' print(result)
+```
+
+### summary.backtest_result
+```r
+#' Summary method for backtest results
+#'
+#' @param object A backtest_result object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisible copy of the object
+#' @export
+```
+
+### plot.backtest_result
+```r
+#' Plot Backtest Results
+#'
+#' @description
+#' S3 method for visualizing backtest results. Supports multiple plot types
+#' including equity curve, drawdowns, and position counts.
+#'
+#' @param x backtest_result object
+#' @param type Plot type: "performance", "positions", or "weights"
+#' @param ... Additional plotting parameters
+#'
+#' @return NULL (creates plot)
+#' @export
+#' @examples
+#' # Create a backtest result to use
+#' data(sample_prices_weekly)
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weights <- weight_equally(selected)
+#' result <- run_backtest(sample_prices_weekly, weights)
+#'
+#' # Plot the results
+#' plot(result, type = "performance")
+```
+
+### calculate_drawdowns
+```r
+#' Calculate Portfolio Drawdowns
+#'
+#' @description
+#' Calculates drawdown series from portfolio values. Drawdown is the
+#' percentage decline from the previous peak.
+#'
+#' @param values Numeric vector of portfolio values
+#'
+#' @return Numeric vector of drawdown percentages (negative values)
+#' @keywords internal
+```
+
+### calculate_annualized_return
+```r
+#' Calculate Annualized Return
+#'
+#' @description
+#' Converts total return to annualized return based on time period.
+#'
+#' @param result Backtest result object
+#'
+#' @return Annualized return as decimal (0.1 = 10%)
+#' @keywords internal
+```
+
+### backtest_metrics
+```r
+#' Calculate Comprehensive Backtest Metrics
+#'
+#' @description
+#' Computes performance metrics including Sharpe ratio, maximum drawdown,
+#' win rate, and other statistics from backtest results.
+#'
+#' @param result Backtest result object from run_backtest()
+#'
+#' @return List containing performance metrics
+#' @export
+#' @examples
+#' # Create a backtest result to use
+#' data(sample_prices_weekly)
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weights <- weight_equally(selected)
+#' result <- run_backtest(sample_prices_weekly, weights)
+#'
+#' # Calculate metrics
+#' metrics <- backtest_metrics(result)
+#' print(metrics$sharpe_ratio)
+```
+
+### calc_relative_strength_rank
+```r
+#' Calculate Cross-Sectional Ranking of Indicators
+#'
+#' @description
+#' Ranks each stock's indicator value against all other stocks on the same date.
+#' Enables relative strength strategies that adapt to market conditions. Optimized
+#' using matrix operations for 15x speedup.
+#'
+#' @param indicator_df Data frame with Date column and indicator values
+#' @param method Ranking method: "percentile" (0-100), "rank" (1-N), or "z-score"
+#'
+#' @return Data frame with same structure containing ranks/scores
+#' @export
+#' @examples
+#' # Rank RSI across all stocks
+#' rsi <- calc_rsi(prices, 14)
+#' rsi_ranks <- calc_relative_strength_rank(rsi, method = "percentile")
+#'
+#' # Find relatively overbought (top 10%)
+#' relative_overbought <- filter_above(rsi_ranks, 90)
+```
+
+### calc_market_breadth
+```r
+#' Calculate Market Breadth Percentage
+#'
+#' @description
+#' Measures the percentage of stocks meeting a condition (market participation).
+#' Useful for assessing market health and identifying broad vs narrow moves.
+#'
+#' @param condition_df Data frame with Date column and TRUE/FALSE values
+#' @param min_stocks Minimum stocks required for valid calculation (default: 10)
+#'
+#' @return Data.table with Date and Breadth_Percent columns (0-100 scale)
+#' @export
+#' @examples
+#' # Percent of stocks above 200-day MA
+#' ma200 <- calc_moving_average(sample_prices_weekly, 200)
+#' above_ma <- sample_prices_weekly > ma200
+#' breadth <- calc_market_breadth(above_ma)
+#'
+#' # Identify broad rallies (>70% participation)
+#' broad_rally <- breadth$Breadth_Percent > 70
+```
+
+### rank_within_sector
+```r
+#' Rank Indicators Within Each Sector
+#'
+#' @description
+#' Ranks stocks within their sector for sector-neutral strategies. Enables
+#' selecting best stocks from each sector regardless of sector performance.
+#' Optimized using matrix operations within groups.
+#'
+#' @param indicator_df Data frame with Date column and indicator values
+#' @param sector_mapping Data frame with Symbol and Sector columns
+#' @param method "percentile" (0-100), "rank" (1-N), or "z-score"
+#' @param min_sector_size Minimum stocks per sector (default: 3)
+#'
+#' @return Data frame with within-sector ranks/scores
+#' @export
+#' @examples
+#' # Rank momentum within sectors
+#' momentum <- calc_momentum(prices, 12)
+#' sector_ranks <- rank_within_sector(momentum, sectors, "percentile")
+#'
+#' # Select top 20% from each sector
+#' top_in_sector <- filter_above(sector_ranks, 80)
+```
+
+### calc_sector_breadth
+```r
+#' Calculate Market Breadth by Sector
+#'
+#' @description
+#' Measures participation within each sector separately, revealing which sectors
+#' have broad strength vs concentrated leadership. Optimized using pre-splitting
+#' for speed.
+#'
+#' @param condition_df Data frame with Date column and TRUE/FALSE values
+#' @param sector_mapping Data frame with Symbol and Sector columns
+#' @param min_stocks_per_sector Minimum stocks for valid sector breadth (default: 3)
+#' @param na_sector_action How to handle unmapped stocks: "exclude", "separate", or "market"
+#'
+#' @return Data.table with Date and Breadth_[Sector] columns (0-100 scale)
+#' @export
+#' @examples
+#' # Breadth above MA by sector
+#' above_ma <- sample_prices_weekly > calc_moving_average(sample_prices_weekly, 200)
+#' sector_breadth <- calc_sector_breadth(above_ma, sample_sp500_sectors)
+#'
+#' # Identify strong sectors (>70% participation)
+#' tech_strong <- sector_breadth$Breadth_Technology > 70
+```
+
+### calc_sector_relative_indicators
+```r
+#' Calculate Indicators Relative to Sector Average
+#'
+#' @description
+#' Measures how each stock's indicator compares to its sector benchmark.
+#' Enables sector-neutral strategies and identifies sector outperformers.
+#'
+#' @param indicator_df Data frame with Date column and indicator values
+#' @param sector_mapping Data frame with Symbol and Sector columns
+#' @param method "difference" (absolute), "ratio" (relative), or "z-score"
+#' @param benchmark "mean" or "median" sector average
+#' @param ratio_threshold Minimum denominator for ratio method (default: 0.01)
+#' @param min_sector_size Minimum stocks per sector (default: 2)
+#'
+#' @return Data frame with sector-relative values
+#' @export
+#' @examples
+#' # Find stocks outperforming their sector
+#' momentum <- calc_momentum(prices, 12)
+#' relative_momentum <- calc_sector_relative_indicators(
+#'   momentum, sectors, method = "difference"
+#' )
+#' sector_winners <- filter_above(relative_momentum, 0.05)
+```
+
+### standardize_data_format
+```r
+#' Standardize Data to Library Format
+#'
+#' @description
+#' Internal function that converts various data formats to standard
+#' wide format with Date column and symbol columns.
+#'
+#' @param data Input data in long or wide format
+#' @param date_col Name of date column
+#' @param symbol_col Name of symbol column (for long format)
+#' @param price_col Name of price column (for long format)
+#' @param symbol_order Optional ordering for symbols
+#'
+#' @return Standardized data.table
+#' @keywords internal
+```
+
+### sql_adapter
+```r
+#' Load Price Data from SQL Database
+#'
+#' @description
+#' Loads stock price data from SQLite database with automatic frequency conversion.
+#' Supports daily, weekly, and monthly frequencies with auto-update capability.
+#'
+#' @param db_path Path to SQLite database file
+#' @param symbols Character vector of stock symbols to load
+#' @param start_date Start date (YYYY-MM-DD format) or NULL for all
+#' @param end_date End date (YYYY-MM-DD format) or NULL for all
+#' @param auto_update Auto-update database before loading (default: TRUE)
+#' @param frequency "daily", "weekly", or "monthly" (default: "daily")
+#'
+#' @return Data.table with Date column and one column per symbol
+#' @export
+#' @examples
+#' # Load weekly data for specific symbols
+#' prices <- sql_adapter("sp500.db", c("AAPL", "MSFT"),
+#'                      start_date = "2020-01-01",
+#'                      frequency = "weekly")
+```
+
+### csv_adapter
+```r
+#' Load Price Data from CSV File
+#'
+#' @description
+#' Reads stock price data from CSV files with flexible column naming.
+#' Automatically standardizes to library format.
+#'
+#' @param file_path Path to CSV file
+#' @param date_col Name of date column (default: "date")
+#' @param symbol_col Name of symbol column (default: "symbol")
+#' @param price_col Name of price column (default: "close")
+#' @param frequency Target frequency: "daily" or "weekly" (default: "daily")
+#' @param symbol_order Optional vector to order symbols
+#'
+#' @return Data.table with Date column and price columns
+#' @export
+#' @examples
+#' # Load from CSV with custom columns
+#' prices <- csv_adapter("data.csv",
+#'                      date_col = "Date",
+#'                      price_col = "Close")
+```
+
+### manual_adapter
+```r
+#' Adapter for User-Provided Data
+#'
+#' @description
+#' Simple adapter for when users provide their own data frame.
+#' Ensures proper Date formatting and sorting.
+#'
+#' @param data User-provided data frame
+#' @param date_col Name of date column (default: "Date")
+#'
+#' @return Standardized data.table
+#' @export
+#' @examples
+#' # Use your own data frame
+#' my_prices <- manual_adapter(my_data)
+```
+
+### validate_data_format
+```r
+#' Validate Data Format for Library Functions
+#'
+#' @description
+#' Checks that data meets library requirements: proper Date column,
+#' at least one symbol, correct data types. Prints diagnostic info.
+#'
+#' @param data Data frame to validate
+#'
+#' @return TRUE if valid, stops with error if not
+#' @export
+#' @examples
+#' # Check if data is properly formatted
+#' validate_data_format(prices)
+```
+
+### convert_to_nweeks
+```r
+#' Convert Data to N-Week Frequency
+#'
+#' @description
+#' Resamples daily or weekly data to n-week periods. Handles week-ending
+#' calculations and various aggregation methods.
+#'
+#' @param data Data.table with Date column and price columns
+#' @param n Number of weeks to aggregate (default: 1 for weekly)
+#' @param method Aggregation method: "last" or "mean" (default: "last")
+#'
+#' @return Data.table resampled to n-week frequency
+#' @export
+#' @examples
+#' # Convert daily to weekly
+#' weekly <- convert_to_nweeks(daily_prices, n = 1)
+#' # Convert to bi-weekly
+#' biweekly <- convert_to_nweeks(daily_prices, n = 2)
+```
+
+### sql_adapter_adjusted
+```r
+#' Load Adjusted Price Data from SQL Database
+#'
+#' @description
+#' Loads adjusted stock prices (for splits/dividends) from SQLite database.
+#' Handles missing adjusted prices gracefully with warnings.
+#'
+#' @param db_path Path to SQLite database file
+#' @param symbols Character vector of stock symbols to load
+#' @param start_date Start date (YYYY-MM-DD format) or NULL
+#' @param end_date End date (YYYY-MM-DD format) or NULL
+#' @param auto_update Auto-update database (default: FALSE for adjusted)
+#' @param frequency "daily", "weekly", or "monthly" (default: "daily")
+#' @param use_adjusted Use adjusted prices if available (default: TRUE)
+#'
+#' @return Data.table with Date column and adjusted prices per symbol
+#' @export
+#' @examples
+#' # Load monthly adjusted prices
+#' prices <- sql_adapter_adjusted("sp500.db", symbols,
+#'                               start_date = "2020-01-01",
+#'                               frequency = "monthly")
+```
+
+### load_mixed_symbols
+```r
+#' Load Mixed Symbols Including VIX
+#'
+#' @description
+#' Handles loading regular stocks and VIX together, with VIX loaded
+#' separately without auto-update to avoid issues.
+#'
+#' @param db_path Path to SQLite database
+#' @param symbols Character vector including regular stocks and optionally "VIX"
+#' @param start_date Start date for data
+#' @param end_date End date for data
+#' @param frequency Data frequency (default: "weekly")
+#' @param use_adjusted Use adjusted prices (default: TRUE)
+#'
+#' @return Data.table with all symbols properly loaded
+#' @export
+#' @examples
+#' # Load stocks and VIX together
+#' data <- load_mixed_symbols("sp500.db",
+#'                           c("AAPL", "MSFT", "VIX"),
+#'                           start_date = "2020-01-01")
+```
+
+### download_sp500_sectors
+```r
+#' Download S&P 500 Sector Mappings from Wikipedia
+#'
+#' @description
+#' Scrapes current S&P 500 constituent list with sector classifications
+#' from Wikipedia. Creates both CSV and RDS files for offline use.
+#'
+#' @param save_csv Logical, whether to save as CSV file (default: FALSE)
+#' @param save_rds Logical, whether to save as RDS file (default: FALSE)
+#'
+#' @return Data.table with columns: Symbol, Security, Sector, SubIndustry, Industry
+#' @export
+#' @examples
+#' # Download current sector mappings
+#' sectors <- download_sp500_sectors()
+#'
+#' # Download and save for offline use
+#' sectors <- download_sp500_sectors(save_csv = TRUE, save_rds = TRUE)
+#'
+#' # Check sector distribution
+#' table(sectors$Sector)
+```
+
+### update_vix_in_db
+```r
+#' Update VIX data in database
+#'
+#' @param db_path Path to SQLite database
+#' @param from_date Start date for update (NULL = auto-detect)
+#' @return Number of rows updated (invisible)
+#' @export
+```
+
+### filter_rank
+```r
+#' Select Top or Bottom N Stocks by Signal
+#'
+#' @description
+#' Selects the top N (best) or worst N stocks based on signal strength.
+#' Optimized using matrix operations for 5-10x speedup.
+#'
+#' @param signal_df Data frame with Date column and signal values
+#' @param n Number of stocks to select
+#' @param type "top" for highest values, "worst" for lowest values
+#'
+#' @return Binary selection matrix (1 = selected, 0 = not selected)
+#' @export
+#' @examples
+#' # Select 10 highest momentum stocks
+#' top10 <- filter_rank(momentum, 10, type = "top")
+#' # Select 5 lowest volatility stocks
+#' low_vol <- filter_rank(volatility, 5, type = "worst")
+```
+
+### filter_threshold
+```r
+#' Filter by Threshold Value
+#'
+#' @description
+#' Selects stocks above or below a threshold value.
+#'
+#' @param signal_df Data frame with signal values
+#' @param value Threshold value
+#' @param type "above" or "below"
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' # Select stocks with positive momentum
+#' positive <- filter_threshold(momentum, 0, type = "above")
+```
+
+### filter_top_n
+```r
+#' Select Top N Stocks by Signal Value
+#'
+#' @description
+#' Most commonly used filter function. Selects top N (highest) or bottom N (lowest)
+#' stocks by signal value. Optimized for 5-10x faster performance.
+#'
+#' @param signal_df Data frame with Date column and signal values
+#' @param n Number of stocks to select
+#' @param ascending FALSE (default) selects highest, TRUE selects lowest
+#'
+#' @return Binary selection matrix (1 = selected, 0 = not selected)
+#' @export
+#' @examples
+#' # Select 10 highest momentum stocks
+#' top_momentum <- filter_top_n(momentum, n = 10)
+#' # Select 5 lowest volatility stocks
+#' low_vol <- filter_top_n(volatility, n = 5, ascending = TRUE)
+```
+
+### filter_above
+```r
+#' Filter Stocks Above Threshold
+#'
+#' @description
+#' Convenience function to select stocks with signal above a value.
+#'
+#' @param signal_df Data frame with signal values
+#' @param value Threshold value
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' # Select stocks with RSI > 70
+#' overbought <- filter_above(rsi, 70)
+```
+
+### filter_below
+```r
+#' Filter Stocks Below Threshold
+#'
+#' @description
+#' Convenience function to select stocks with signal below a value.
+#'
+#' @param signal_df Data frame with signal values
+#' @param value Threshold value
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' # Select stocks with RSI < 30
+#' oversold <- filter_below(rsi, 30)
+```
+
+### filter_between
+```r
+#' Filter Stocks Between Two Values
+#'
+#' @description
+#' Selects stocks with signal values between lower and upper bounds.
+#'
+#' @param signal_df Data frame with signal values
+#' @param lower Lower bound (inclusive)
+#' @param upper Upper bound (inclusive)
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' # Select stocks with RSI between 30 and 70
+#' neutral_rsi <- filter_between(rsi, 30, 70)
+```
+
+### filter_top_n_where
+```r
+#' Select Top N from Qualified Stocks
+#'
+#' @description
+#' Selects top N stocks by signal, but only from those meeting a condition.
+#' Combines qualification and ranking in one step.
+#'
+#' @param signal_df Signal values for ranking
+#' @param n Number to select
+#' @param condition_df Binary matrix of qualified stocks
+#' @param min_qualified Minimum qualified stocks required (default: 1)
+#' @param ascending FALSE for highest, TRUE for lowest
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' # Top 10 momentum stocks from those above MA
+#' above_ma <- filter_above(distance_from_ma, 0)
+#' top_qualified <- filter_top_n_where(momentum, 10, above_ma)
+```
+
+### apply_regime
+```r
+#' Apply Market Regime Filter
+#'
+#' @description
+#' Applies regime-based filtering. When regime is FALSE (e.g., bear market),
+#' all selections become 0, moving portfolio to cash.
+#'
+#' @param selection_df Binary selection matrix
+#' @param regime_condition Logical vector (TRUE = trade, FALSE = cash)
+#' @param partial_weight Fraction to hold when regime is FALSE (default: 0)
+#'
+#' @return Modified selection matrix respecting regime
+#' @export
+#' @examples
+#' # Only trade when SPY above 200-day MA
+#' # Example with sample data:
+#' # data(sample_prices_weekly)
+```
+
+### limit_positions
+```r
+#' Limit the number of positions in a selection matrix
+#'
+#' This function enforces position limits, keeping only the top N securities
+#' when more are selected. This is crucial for portfolio concentration management
+#' and institutional constraints. When more than max_positions are selected,
+#' it keeps the highest-ranked ones according to the ranking signal.
+#'
+#' @param selection_df Binary selection matrix
+#' @param max_positions Maximum number of positions allowed
+#' @param ranking_signal DataFrame with values for ranking (if NULL, selections are random)
+#' @param verbose Print information about position limiting (default: FALSE)
+#'
+#' @return Selection matrix with at most max_positions securities selected per period
+#'
+#' @examples
+#' # Limit to 20 positions, ranked by momentum
+#' concentrated <- limit_positions(my_selections, 20, momentum)
+#'
+#' # Limit to 10 positions, keeping existing selections randomly
+#' limited <- limit_positions(my_selections, 10)
+#'
+```
+
+### combine_filters
+```r
+#' Combine Multiple Filter Conditions
+#'
+#' @description
+#' Combines multiple filter conditions using AND or OR logic.
+#'
+#' @param ... Two or more filter data frames to combine
+#' @param op Operation: "and" or "or"
+#' @param apply_when Optional condition vector for conditional filtering
+#' @param debug Print debug information (default: FALSE)
+#'
+#' @return Combined binary selection matrix
+#' @export
+#' @examples
+#' # Combine momentum and RSI filters
+#' high_momentum <- filter_above(momentum, 0.1)
+#' good_rsi <- filter_between(rsi, 30, 70)
+#' combined <- combine_filters(high_momentum, good_rsi, op = "and")
+```
+
+### analyze_performance
+```r
+#' Analyze Backtest Performance with Daily Monitoring
+#'
+#' @description
+#' Calculates comprehensive performance metrics using daily price data for
+#' enhanced accuracy. Provides risk-adjusted returns, drawdown analysis,
+#' and benchmark comparison even when strategy trades at lower frequency.
+#'
+#' @param backtest_result Result object from run_backtest()
+#' @param daily_prices Daily price data including all portfolio symbols
+#' @param benchmark_symbol Symbol for benchmark comparison (default: "SPY")
+#' @param rf_rate Annual risk-free rate for Sharpe/Sortino (default: 0)
+#' @param confidence_level Confidence level for VaR/CVaR (default: 0.95)
+#'
+#' @return performance_analysis object with metrics and daily tracking
+#' @export
+#' @examples
+#' # Load sample data
+#' data(sample_prices_weekly)
+#' data(sample_prices_daily)
+#'
+#' # Run a backtest first
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weights <- weight_equally(selected)
+#' result <- run_backtest(sample_prices_weekly, weights)
+#'
+#' # Analyze performance with daily data
+#' \dontrun{
+#' perf <- analyze_performance(result, sample_prices_daily,
+#'                           benchmark_symbol = "SPY")
+#' print(perf)
+#' plot(perf)
+#' }
+```
+
+### calculate_daily_values
+```r
+#' Calculate Daily Portfolio Values
+#'
+#' @description
+#' Tracks portfolio value daily between rebalance dates for accurate
+#' performance measurement. Handles position tracking through time.
+#'
+#' @param positions Position data from backtest
+#' @param daily_prices Daily price data
+#' @param strategy_dates Strategy rebalance dates
+#' @param initial_capital Starting capital
+#' @param cash_balances Cash positions over time
+#'
+#' @return List with daily values and dates
+#' @keywords internal
+```
+
+### calculate_enhanced_metrics
+```r
+#' Calculate Enhanced Performance Metrics
+#'
+#' @description
+#' Computes comprehensive risk and return metrics from daily data including
+#' Sharpe, Sortino, Calmar ratios, VaR, CVaR, and tail risk measures.
+#'
+#' @param daily_values Daily portfolio values
+#' @param daily_returns Daily return series
+#' @param rf_rate Risk-free rate
+#' @param confidence_level VaR/CVaR confidence level
+#'
+#' @return List of performance metrics
+#' @keywords internal
+```
+
+### analyze_vs_benchmark
+```r
+#' Analyze Performance Against Benchmark
+#'
+#' @description
+#' Calculates benchmark-relative metrics including alpha, beta, tracking
+#' error, information ratio, and correlation.
+#'
+#' @param portfolio_returns Portfolio return series
+#' @param benchmark_prices Benchmark price data with dates
+#' @param dates Portfolio dates
+#' @param benchmark_symbol Benchmark name for reporting
+#'
+#' @return List of benchmark comparison metrics
+#' @keywords internal
+```
+
+### calculate_drawdown_series
+```r
+#' Calculate Drawdown Series from Values
+#'
+#' @description
+#' Converts portfolio values to drawdown percentages showing decline
+#' from previous peaks.
+#'
+#' @param values Numeric vector of portfolio values
+#'
+#' @return Numeric vector of drawdowns (0 to -1 scale)
+#' @export
+#' @examples
+#' drawdowns <- calculate_drawdown_series(portfolio_values)
+#' max_dd <- min(drawdowns)  # Maximum drawdown
+```
+
+### analyze_drawdowns
+```r
+#' Analyze Drawdown Statistics
+#'
+#' @description
+#' Calculates comprehensive drawdown metrics including maximum drawdown,
+#' average drawdown, duration statistics, and recovery times.
+#'
+#' @param drawdowns Drawdown series (negative values)
+#' @param returns Return series for additional metrics
+#'
+#' @return List with drawdown statistics
+#' @export
+#' @examples
+#' # Create sample data
+#' portfolio_values <- cumsum(rnorm(100, 0.001, 0.02)) + 100
+#' dd <- calculate_drawdown_series(portfolio_values)
+#' returns <- diff(portfolio_values)/head(portfolio_values, -1)
+#' stats <- analyze_drawdowns(dd, returns)
+```
+
+### get_data_frequency
+```r
+#' Detect Data Frequency from Dates
+#'
+#' @description
+#' Automatically detects whether data is daily, weekly, monthly, or
+#' quarterly based on date spacing.
+#'
+#' @param dates Vector of Date objects
+#'
+#' @return Character string: "daily", "weekly", "monthly", or "quarterly"
+#' @export
+#' @examples
+#' freq <- get_data_frequency(prices$Date)
+```
+
+### validate_performance_inputs
+```r
+#' Validate Performance Analysis Inputs
+#'
+#' @description
+#' Checks that backtest result and daily prices are properly formatted
+#' with matching symbols and appropriate date coverage.
+#'
+#' @param backtest_result Backtest result object
+#' @param daily_prices Daily price data
+#' @param benchmark_symbol Benchmark symbol
+#'
+#' @return TRUE if valid, stops with error if not
+#' @keywords internal
+```
+
+### print.performance_analysis
+```r
+#' Print Performance Analysis Results
+#'
+#' @description
+#' S3 method for printing performance analysis with key metrics including
+#' risk-adjusted returns, drawdown statistics, and benchmark comparison.
+#'
+#' @param x performance_analysis object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisible copy of x
+#' @export
+#' @examples
+#' perf <- analyze_performance(result, daily_prices)
+#' print(perf)  # Or just: perf
+```
+
+### plot.performance_analysis
+```r
+#' Plot Performance Analysis Results
+#'
+#' @description
+#' S3 method for visualizing performance metrics. Supports multiple plot
+#' types including summary dashboard, return distributions, risk evolution,
+#' and rolling statistics.
+#'
+#' @param x performance_analysis object
+#' @param type Plot type: "summary", "returns", "risk", "drawdown"
+#' @param ... Additional plotting parameters
+#'
+#' @return NULL (creates plot)
+#' @export
+#' @examples
+#' perf <- analyze_performance(result, daily_prices)
+#'
+#' # 4-panel summary dashboard
+#' plot(perf, type = "summary")
+#'
+#' # Return distribution analysis
+#' plot(perf, type = "returns")
+#'
+#' # Risk metrics over time
+#' plot(perf, type = "risk")
+#'
+#' # Detailed drawdown analysis
+#' plot(perf, type = "drawdown")
+```
+
+### create_regime_buckets
+```r
+#' Convert Continuous Indicator to Discrete Regimes
+#'
+#' @description
+#' Transforms continuous indicators (like VIX, volatility, correlation) into
+#' discrete regime categories for adaptive strategy behavior. Supports both
+#' percentile-based and absolute value breakpoints.
+#'
+#' @param indicator Numeric vector or single-column data frame with indicator values
+#' @param breakpoints Numeric vector of breakpoints. If all values are between
+#'                    0 and 100, treated as percentiles; otherwise absolute values
+#' @param labels Optional character vector of regime names. If NULL, generates
+#'               automatic labels based on number of buckets
+#' @param use_percentiles Use percentiles instead of fixed breakpoints
+#' @return Factor vector with regime assignments for each observation
+#' @export
+#' @examples
+#' # Create VIX-based market regimes
+#' vix_regimes <- create_regime_buckets(
+#'   vix_data$VIX,
+#'   breakpoints = c(20, 30),
+#'   labels = c("calm", "normal", "stressed")
+#' )
+#'
+#' # Use percentiles for automatic thresholds
+#' vol_regimes <- create_regime_buckets(
+#'   volatility,
+#'   breakpoints = c(25, 75),  # 25th and 75th percentiles
+#'   labels = c("low", "medium", "high")
+#' )
+#'
+#' # Four regimes with auto-generated labels
+#' correlation_regimes <- create_regime_buckets(
+#'   correlations,
+#'   breakpoints = c(-0.2, 0.3, 0.7)
+#' )  # Creates: low, normal, elevated, extreme
+```
+
+### calc_momentum
+```r
+#' Calculate Price Momentum
+#'
+#' @description
+#' Calculates momentum as the percentage change in price over a specified
+#' lookback period. Optimized using column-wise operations (25x faster).
+#'
+#' @param data A data.frame or data.table with Date column and price columns
+#' @param lookback Number of periods for momentum calculation (default: 12)
+#'
+#' @return Data.table with momentum values (0.1 = 10% increase)
+#' @export
+#' @examples
+#' momentum <- calc_momentum(prices, lookback = 12)
+```
+
+### calc_distance
+```r
+#' Calculate Distance from Reference
+#'
+#' @description
+#' Calculates percentage distance between prices and reference values
+#' (typically moving averages).
+#'
+#' @param price_df Data frame with price data
+#' @param reference_df Data frame with reference values (same structure)
+#'
+#' @return Data.table with percentage distances
+#' @export
+#' @examples
+#' ma20 <- calc_moving_average(prices, 20)
+#' distance <- calc_distance(prices, ma20)
+```
+
+### calc_moving_average
+```r
+#' Calculate Moving Average
+#'
+#' @description
+#' Calculates simple moving average for each column in the data.
+#'
+#' @param data Data frame with Date column and price columns
+#' @param window Number of periods for moving average (default: 20)
+#'
+#' @return Data.table with moving average values
+#' @export
+#' @examples
+#' ma20 <- calc_moving_average(prices, window = 20)
+```
+
+### calc_stochastic_d
+```r
+#' Calculate Stochastic D Indicator
+#'
+#' @description
+#' Calculates the Stochastic D indicator for momentum analysis.
+#' The %D line is the smoothed version of %K, commonly used for
+#' momentum signals in range [0,100].
+#'
+#' @param data Price data with Date column and symbol columns
+#' @param k Lookback period for stochastic K calculation
+#' @param d Smoothing period for D line
+#'
+#' @return Data.table with Stochastic D values for each symbol
+#' @export
+#' @examples
+#' data(sample_prices_weekly)
+#' stoch_d <- calc_stochastic_d(sample_prices_weekly, k = 14, d = 3)
+#' head(stoch_d)
+```
+
+### calc_rsi
+```r
+#' Calculate Relative Strength Index (RSI)
+#'
+#' @description
+#' Calculates RSI for each column. RSI ranges from 0-100.
+#' Above 70 indicates overbought, below 30 indicates oversold.
+#'
+#' @param data Data frame with Date column and price columns
+#' @param period RSI period (default: 14)
+#'
+#' @return Data.table with RSI values (0-100 range)
+#' @export
+#' @examples
+#' rsi <- calc_rsi(prices, period = 14)
+#' overbought <- filter_above(rsi, 70)
+```
+
+### calc_cci
+```r
+#' Calculate Commodity Channel Index (CCI)
+#'
+#' @description
+#' Calculates CCI using closing prices. CCI measures deviation from average price.
+#' Values above 100 indicate overbought, below -100 indicate oversold.
+#'
+#' @param data Data frame with Date column and price columns
+#' @param period CCI period (default: 20)
+#'
+#' @return Data.table with CCI values
+#' @export
+#' @examples
+#' cci <- calc_cci(prices, period = 20)
+```
+
+### safe_divide
+```r
+#' Safe Division with NA and Zero Handling
+#'
+#' @description
+#' Performs division with automatic handling of NA values, zeros, and infinity.
+#' Returns 0 for division by zero and NA cases.
+#'
+#' @param numerator Numeric vector
+#' @param denominator Numeric vector
+#'
+#' @return Numeric vector with safe division results
+#' @export
+#' @examples
+#' safe_divide(c(10, 0, NA, 5), c(2, 0, 5, NA))  # Returns c(5, 0, 0, 0)
+```
+
+### safe_any
+```r
+#' Safe ANY Operation with NA Handling
+#'
+#' @description
+#' Performs any() operation that returns FALSE when all values are NA
+#' instead of NA.
+#'
+#' @param x Logical vector
+#' @param ... Additional arguments passed to any()
+#'
+#' @return Logical value (never NA)
+#' @keywords internal
+```
+
+### ensure_dt_copy
+```r
+#' Ensure Data.Table Without Mutation
+#'
+#' @description
+#' Converts input to data.table if needed, always returning a copy
+#' to prevent accidental data mutation. Core safety function used
+#' throughout the library.
+#'
+#' @param data Data.frame or data.table
+#'
+#' @return Copy of data as data.table
+#' @export
+#' @examples
+#' dt <- ensure_dt_copy(prices)  # Safe to modify dt
+```
+
+### as_selection
+```r
+#' Convert Conditions to Selection Format
+#'
+#' @description
+#' Converts condition matrices or data frames to standard selection format
+#' with Date column and binary values. Handles NA by converting to 0.
+#'
+#' @param condition_matrix Matrix or data frame with conditions
+#' @param date_column Optional Date vector if not in input
+#'
+#' @return Data.table in selection format (Date + binary columns)
+#' @export
+#' @examples
+#' # Convert logical conditions to selection
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' above_ma <- sample_prices_weekly > ma20
+#' selection <- as_selection(above_ma, sample_prices_weekly$Date)
+```
+
+### align_to_timeframe
+```r
+#' Align High-Frequency Data to Low-Frequency Dates
+#'
+#' @description
+#' Aligns indicators calculated on one timeframe (e.g., daily) to a trading
+#' timeframe (e.g., weekly). Uses data.table rolling joins for speed.
+#'
+#' @param high_freq_data High-frequency data (e.g., daily)
+#' @param low_freq_dates Target dates to align to
+#' @param method "forward_fill", "nearest", or "interpolate"
+#'
+#' @return Data aligned to low-frequency dates
+#' @export
+#' @examples
+#' # Create sample data for the example
+#' daily_data <- data.table::data.table(
+#'   Date = seq(as.Date("2023-01-01"), by = "day", length.out = 100),
+#'   AAPL = runif(100, 100, 110),
+#'   MSFT = runif(100, 200, 210)
+#' )
+#'
+#' # Create weekly dates to align to
+#' weekly_dates <- seq(as.Date("2023-01-01"), by = "week", length.out = 15)
+#'
+#' # Align daily data to weekly dates
+#' weekly_aligned <- align_to_timeframe(daily_data, weekly_dates, "forward_fill")
+```
+
+### invert_signal
+```r
+#' Invert Signal Values for Preference Reversal
+#'
+#' @description
+#' Transforms signal values using (1 - value) to reverse preference direction.
+#' Useful when high values indicate something to avoid. For example, inverting
+#' volatility makes low-vol stocks appear as high signals.
+#'
+#' @param signal_df Data frame with Date column and signal columns
+#'
+#' @return Data frame with inverted signal values
+#' @export
+#' @examples
+#' # Prefer low volatility stocks
+#' volatility <- calc_rolling_volatility(prices, 20)
+#' stability_signal <- invert_signal(volatility)
+#' weights <- weight_by_signal(selected, stability_signal)
+```
+
+### weight_equally
+```r
+#' Equal Weight Portfolio Construction
+#'
+#' @description
+#' Creates equal weight portfolio from selected stocks. Each selected stock
+#' receives 1/N weight. Optimized version using vectorized operations.
+#'
+#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#'
+#' @return Data.table with portfolio weights (sum to 1 per period)
+#' @export
+#' @examples
+#' # Equal weight for top 10 momentum stocks
+#' selected <- filter_top_n(momentum, 10)
+#' weights <- weight_equally(selected)
+```
+
+### weight_by_signal
+```r
+#' Signal-Weighted Portfolio Construction
+#'
+#' @description
+#' Weights stocks proportionally to signal strength. Higher signal values
+#' receive higher weights. Optimized using vectorized operations (40x faster).
+#'
+#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#' @param signal_df Signal values for weighting
+#'
+#' @return Data.table with portfolio weights (sum to 1 per period)
+#' @export
+#' @examples
+#' # Weight by momentum strength
+#' selected <- filter_top_n(momentum, 10)
+#' weights <- weight_by_signal(selected, momentum)
+```
+
+### weight_by_rank
+```r
+#' Rank-Based Portfolio Weighting
+#'
+#' @description
+#' Weights stocks based on their rank. Supports linear (proportional to rank),
+#' exponential (emphasizes top ranks), and equal weighting methods.
+#' Optimized version with 100x speedup.
+#'
+#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#' @param signal_df Signal values for ranking
+#' @param method Ranking method: "linear" or "exponential" (default: "linear")
+#' @param ascending Sort order for ranking
+#'
+#' @return Data.table with portfolio weights (sum to 1 per period)
+#' @export
+#' @examples
+#' # Linear rank weighting (best gets most)
+#' selected <- filter_top_n(momentum, 10)
+#' weights <- weight_by_rank(selected, momentum, method = "linear")
+#'
+#' # Exponential with strong decay (heavy on top stocks)
+#' weights_exp <- weight_by_rank(selected, momentum, method = "exponential", decay = 0.3)
+```
+
+### weight_by_volatility
+```r
+#' Volatility-Based Portfolio Weighting
+#'
+#' @description
+#' Weights stocks based on volatility with multiple calculation and weighting methods.
+#' Supports various volatility estimators (std, range, MAD, absolute returns) and
+#' weighting approaches (rank, equal, inverse variance).
+#'
+#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#' @param vol_timeframe_data Price data for volatility calculation (usually daily)
+#' @param strategy_timeframe_data Price data matching strategy frequency
+#' @param lookback_periods Number of periods for volatility (default: 26)
+#' @param low_vol_preference TRUE = lower vol gets higher weight (default: TRUE)
+#' @param vol_method "std", "range", "mad", or "abs_return"
+#' @param weighting_method "rank", "equal", or "inverse_variance"
+#'
+#' @return Data.table with volatility-based weights
+#' @export
+#' @examples
+#' # Prefer low volatility stocks
+#' weights <- weight_by_volatility(selected, daily_prices, low_vol_preference = TRUE)
+```
+
+### weight_by_regime
+```r
+#' Regime-Based Adaptive Weighting
+#'
+#' @description
+#' Applies different weighting methods based on market regime classification.
+#' Enables adaptive strategies that change allocation approach in different
+#' market conditions.
+#'
+#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#' @param regime Regime classification (integer values per period)
+#' @param signal_df Signal values (required for signal/rank methods)
+#' @param vol_timeframe_data Volatility data (required for volatility method)
+#' @param strategy_timeframe_data Strategy timeframe alignment data
+#' @param weighting_configs List with method-specific parameters
+#'
+#' @return Data.table with regime-adaptive weights
+#' @export
+#' @examples
+#' # Different weights for bull/bear markets
+#' # Example requires setup:
+#' # data(sample_prices_weekly)
+#' # ma200 <- calc_moving_average(sample_prices_weekly, 200)
+#' # spy_price <- sample_prices_weekly$SPY
+#' # spy_ma <- ma200$SPY
+#' # regime <- ifelse(spy_price > spy_ma, 1, 2)
+#' weights <- weight_by_regime(selected, regime, method = "signal", signal_df = momentum)
+```
+
+### apply_weighting_method
+```r
+#' Apply Weighting Method to Values
+#'
+#' @description
+#' Internal utility function that applies various weighting methods to a vector.
+#' Used by other weighting functions.
+#'
+#' @param values Named numeric vector of values to weight
+#' @param preference_ascending TRUE = prefer lower values, FALSE = prefer higher
+#'
+#' @return Named numeric vector of weights that sum to 1
+#' @keywords internal
+```
+
+### combine_weights
+```r
+#' Combine Multiple Weighting Schemes
+#'
+#' @description
+#' Blends multiple weight matrices with specified weights. Useful for
+#' multi-factor strategies that combine different allocation approaches.
+#' Optimized using matrix operations for 1000x+ speedup.
+#'
+#' @param weight_matrices List of weight data frames to combine
+#' @param weights Numeric vector of weights for each matrix (default: equal)
+#'
+#' @return Data.table with blended portfolio weights
+#' @export
+#' @examples
+#' # Combine momentum and low-vol weights
+#' mom_weights <- weight_by_signal(selected, momentum)
+#' vol_weights <- weight_by_signal(selected, invert_signal(volatility))
+#' combined <- combine_weights(list(mom_weights, vol_weights), weights = c(0.7, 0.3))
+```
+
+### switch_weights
+```r
+#' @examples
+#' # Load sample data
+#' data(sample_prices_weekly)
+#'
+#' # Calculate different weight schemes
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#'
+#' # Create weight schemes
+#' weights_equal <- weight_equally(selected)
+#' weights_signal <- weight_by_signal(selected, momentum)
+#'
+#' # Create switching signal (example: use AAPL momentum as regime indicator)
+#' aapl_momentum <- momentum$AAPL
+#' switch_signal <- as.numeric(aapl_momentum > median(aapl_momentum, na.rm = TRUE))
+#' switch_signal[is.na(switch_signal)] <- 0
+#'
+#' # Switch between strategies
+#' final_weights <- switch_weights(
+#'   weights_equal,
+#'   weights_signal,
+#'   switch_signal
+#' )
+```
+
+### recursive_bisection_optimized
+```r
+#' Optimized recursive bisection for HRP
+#' @keywords internal
+```
+
+### calculate_cluster_variance_optimized
+```r
+#' Optimized cluster variance calculation
+#' @keywords internal
+```
+
+### calculate_hrp_weights
+```r
+#' Calculate HRP weights for a given returns matrix
+#' @keywords internal
+```
+
+### weight_by_risk_parity
+```r
+#' Risk Parity Weighting Suite
+#'
+#' Collection of risk-based weighting methods for portfolio construction.
+#' Each method allocates capital based on risk characteristics rather than
+#' market capitalization or arbitrary equal weights.
+#'
+#' @param selected_df Binary selection matrix (data.frame with Date column)
+#' @param prices_df Price data for risk calculations (typically daily)
+#'                  Returns are calculated internally from prices
+#' @param lookback_periods Number of periods for risk estimation (default: 252)
+#' @param min_periods Minimum periods required (default: 60)
+#' @param method Optimization method for risk parity
+#' @details
+#' Methods:
+#' - inverse_vol: Weight inversely to volatility (1/'). Lower volatility
+#'                stocks receive higher weights. Simple but effective.
+#' - equal_risk: Equal Risk Contribution (ERC). Each position contributes
+#'               equally to total portfolio risk. Uses iterative optimization.
+#' - max_div: Maximum Diversification Portfolio. Maximizes the ratio of
+#'            weighted average volatility to portfolio volatility.
+#'
+#' The function accepts price data and calculates returns internally,
+#' ensuring consistency with other library functions. Daily prices are
+#' recommended for accurate volatility estimation.
+#'
+#' @return Weight matrix with same dates as selected_df, rows sum to 1
+#'
+#' @examples
+#' # Simple inverse volatility weighting
+#' weights <- weight_by_risk_parity(selected, daily_prices, method = "inverse_vol")
+#'
+#' # Equal Risk Contribution for balanced exposure
+#' weights <- weight_by_risk_parity(selected, daily_prices, method = "equal_risk")
+#'
+#' # Maximum Diversification Portfolio
+#' weights <- weight_by_risk_parity(selected, daily_prices, method = "max_div")
+#'
+```
+
+### calculate_erc_weights
+```r
+#' Calculate Equal Risk Contribution weights (simplified)
+#' @keywords internal
+```
+
+### calculate_max_div_weights
+```r
+#' Calculate Maximum Diversification Portfolio weights
+#' @keywords internal
+```
+
