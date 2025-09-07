@@ -18,6 +18,7 @@ Binary selection matrix
 Convenience function to select stocks with signal below a value.
 }
 \examples{
-# Select stocks with RSI < 30
+data("sample_prices_weekly")
+rsi <- calc_rsi(sample_prices_weekly, 14)
 oversold <- filter_below(rsi, 30)
 }

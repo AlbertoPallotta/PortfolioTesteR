@@ -20,6 +20,8 @@ Binary selection matrix
 Selects stocks with signal values between lower and upper bounds.
 }
 \examples{
+data("sample_prices_weekly")
+rsi <- calc_rsi(sample_prices_weekly, 14)
 # Select stocks with RSI between 30 and 70
 neutral_rsi <- filter_between(rsi, 30, 70)
 }

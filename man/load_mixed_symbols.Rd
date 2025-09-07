@@ -34,8 +34,11 @@ Handles loading regular stocks and VIX together, with VIX loaded
 separately without auto-update to avoid issues.
 }
 \examples{
+\dontrun{
 # Load stocks and VIX together
 data <- load_mixed_symbols("sp500.db",
                           c("AAPL", "MSFT", "VIX"),
-                          start_date = "2020-01-01")
+                          start_date = "2020-01-01",
+                          end_date = "2021-01-01")
+}
 }

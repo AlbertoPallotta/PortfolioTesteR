@@ -5,38 +5,23 @@
 #' Convert Continuous Indicator to Discrete Regimes
 #'
 #' @description
-#' Transforms continuous indicators (like VIX, volatility, correlation) into
-#' discrete regime categories for adaptive strategy behavior. Supports both
-#' percentile-based and absolute value breakpoints.
+#' Transforms continuous indicators into discrete regime categories.
 #'
-#' @param indicator Numeric vector or single-column data frame with indicator values
-#' @param breakpoints Numeric vector of breakpoints. If all values are between
-#'                    0 and 100, treated as percentiles; otherwise absolute values
-#' @param labels Optional character vector of regime names. If NULL, generates
-#'               automatic labels based on number of buckets
-#' @param use_percentiles Use percentiles instead of fixed breakpoints
-#' @return Factor vector with regime assignments for each observation
+#' @param indicator Numeric vector or data frame with indicator values
+#' @param breakpoints Numeric vector of breakpoints
+#' @param labels Optional character vector of regime names
+#' @param use_percentiles Use percentiles instead of fixed breakpoints (default: FALSE)
+#'
+#' @return Integer vector of regime classifications
 #' @export
 #' @examples
-#' # Create VIX-based market regimes
-#' vix_regimes <- create_regime_buckets(
-#'   vix_data$VIX,
-#'   breakpoints = c(20, 30),
-#'   labels = c("calm", "normal", "stressed")
-#' )
-#'
-#' # Use percentiles for automatic thresholds
-#' vol_regimes <- create_regime_buckets(
-#'   volatility,
-#'   breakpoints = c(25, 75),  # 25th and 75th percentiles
-#'   labels = c("low", "medium", "high")
-#' )
-#'
-#' # Four regimes with auto-generated labels
-#' correlation_regimes <- create_regime_buckets(
-#'   correlations,
-#'   breakpoints = c(-0.2, 0.3, 0.7)
-#' )  # Creates: low, normal, elevated, extreme
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, 10)
+#' # Create VIX-like indicator from volatility
+#' vol <- calc_rolling_volatility(sample_prices_weekly, lookback = 20)
+#' vix_proxy <- vol$SPY * 100  # Scale to VIX-like values
+#' regimes <- create_regime_buckets(vix_proxy, c(15, 25))
 create_regime_buckets <- function(indicator, breakpoints, labels = NULL, use_percentiles = FALSE) {
   # Convert continuous indicator into discrete regime buckets
   #

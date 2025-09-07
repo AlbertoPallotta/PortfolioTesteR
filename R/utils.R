@@ -68,7 +68,8 @@ safe_and <- function(x, y) {
 #' @return Copy of data as data.table
 #' @export
 #' @examples
-#' dt <- ensure_dt_copy(prices)  # Safe to modify dt
+#' data("sample_prices_weekly")
+#' dt <- ensure_dt_copy(sample_prices_weekly)  # Safe to modify dt
 ensure_dt_copy <- function(data) {
   if (!is.data.table(data)) {
     return(as.data.table(data))
@@ -135,9 +136,9 @@ safe_min <- function(x, ...) {
 #' @return Data.table in selection format (Date + binary columns)
 #' @export
 #' @examples
-#' # Convert logical conditions to selection
+#' data("sample_prices_weekly")
 #' ma20 <- calc_moving_average(sample_prices_weekly, 20)
-#' above_ma <- sample_prices_weekly > ma20
+#' above_ma <- filter_above(calc_distance(sample_prices_weekly, ma20), 0)
 #' selection <- as_selection(above_ma, sample_prices_weekly$Date)
 as_selection <- function(condition_matrix, date_column = NULL) {
   # Handle different input types
@@ -286,32 +287,26 @@ cat("[OK] Strategy helper functions included\n")
 
 
 
-
-#' Align High-Frequency Data to Low-Frequency Dates
+#' Align Data to Strategy Timeframe
 #'
 #' @description
-#' Aligns indicators calculated on one timeframe (e.g., daily) to a trading
-#' timeframe (e.g., weekly). Uses data.table rolling joins for speed.
+#' Aligns higher-frequency data to match strategy timeframe.
 #'
-#' @param high_freq_data High-frequency data (e.g., daily)
-#' @param low_freq_dates Target dates to align to
-#' @param method "forward_fill", "nearest", or "interpolate"
+#' @param high_freq_data Data frame to align
+#' @param low_freq_dates Date vector from strategy
+#' @param method Alignment method: "forward_fill", "nearest", or "interpolate"
 #'
-#' @return Data aligned to low-frequency dates
+#' @return Aligned data frame
 #' @export
 #' @examples
-#' # Create sample data for the example
-#' daily_data <- data.table::data.table(
-#'   Date = seq(as.Date("2023-01-01"), by = "day", length.out = 100),
-#'   AAPL = runif(100, 100, 110),
-#'   MSFT = runif(100, 200, 210)
-#' )
-#'
-#' # Create weekly dates to align to
-#' weekly_dates <- seq(as.Date("2023-01-01"), by = "week", length.out = 15)
-#'
-#' # Align daily data to weekly dates
-#' weekly_aligned <- align_to_timeframe(daily_data, weekly_dates, "forward_fill")
+#' data("sample_prices_weekly")
+#' data("sample_prices_daily")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, 10)
+#' # Create a stability signal from daily data
+#' daily_vol <- calc_rolling_volatility(sample_prices_daily, lookback = 20)
+#' stability_signal <- align_to_timeframe(daily_vol, sample_prices_weekly$Date)
+#' weights <- weight_by_signal(selected, stability_signal)
 align_to_timeframe <- function(high_freq_data, low_freq_dates, method = c("forward_fill", "nearest", "interpolate")) {
   # Align high-frequency data to low-frequency dates
   # OPTIMIZED VERSION using data.table rolling joins for speed
@@ -415,9 +410,14 @@ align_to_timeframe <- function(high_freq_data, low_freq_dates, method = c("forwa
 #' @return Data frame with inverted signal values
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
 #' # Prefer low volatility stocks
-#' volatility <- calc_rolling_volatility(prices, 20)
+#' volatility <- calc_rolling_volatility(sample_prices_weekly, 20)
 #' stability_signal <- invert_signal(volatility)
+#' # Select top 10 momentum stocks first
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' selected <- filter_top_n(momentum, 10)
+#' # Weight by inverted volatility (low vol = high weight)
 #' weights <- weight_by_signal(selected, stability_signal)
 invert_signal <- function(signal_df) {
   # Input validation

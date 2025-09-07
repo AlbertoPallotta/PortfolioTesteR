@@ -12,27 +12,27 @@ weight_by_rank(
 )
 }
 \arguments{
-\item{selected_df}{Binary selection matrix (1 = selected, 0 = not)}
+\item{selected_df}{Binary selection matrix}
 
 \item{signal_df}{Signal values for ranking}
 
-\item{method}{Ranking method: "linear" or "exponential" (default: "linear")}
+\item{method}{Weighting method: "linear" or "exponential"}
 
-\item{ascending}{Sort order for ranking}
+\item{ascending}{Sort order for ranking (default: FALSE)}
 }
 \value{
-Data.table with portfolio weights (sum to 1 per period)
+Data.table with rank-based weights
 }
 \description{
-Weights stocks based on their rank. Supports linear (proportional to rank),
-exponential (emphasizes top ranks), and equal weighting methods.
-Optimized version with 100x speedup.
+Weights securities based on their rank rather than raw signal values.
+Useful when signal magnitudes are unreliable but ordering is meaningful.
 }
 \examples{
-# Linear rank weighting (best gets most)
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 selected <- filter_top_n(momentum, 10)
+# Linear rank weighting (best gets most)
 weights <- weight_by_rank(selected, momentum, method = "linear")
-
-# Exponential with strong decay (heavy on top stocks)
-weights_exp <- weight_by_rank(selected, momentum, method = "exponential", decay = 0.3)
+# Exponential (heavy on top stocks)
+weights_exp <- weight_by_rank(selected, momentum, method = "exponential")
 }

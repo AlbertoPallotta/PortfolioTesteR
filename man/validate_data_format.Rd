@@ -17,6 +17,7 @@ Checks that data meets library requirements: proper Date column,
 at least one symbol, correct data types. Prints diagnostic info.
 }
 \examples{
+data("sample_prices_weekly")
 # Check if data is properly formatted
-validate_data_format(prices)
+validate_data_format(sample_prices_weekly)
 }

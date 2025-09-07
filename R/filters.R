@@ -58,10 +58,10 @@ create_result_template <- function(signal_df) {
 #' @return Binary selection matrix (1 = selected, 0 = not selected)
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
 #' # Select 10 highest momentum stocks
 #' top10 <- filter_rank(momentum, 10, type = "top")
-#' # Select 5 lowest volatility stocks
-#' low_vol <- filter_rank(volatility, 5, type = "worst")
 filter_rank <- function(signal_df, n, type = c("top", "worst")) {
   validate_signal_data(signal_df, "filter_rank")
   type <- match.arg(type)
@@ -137,6 +137,8 @@ filter_rank <- function(signal_df, n, type = c("top", "worst")) {
 #' @return Binary selection matrix
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
 #' # Select stocks with positive momentum
 #' positive <- filter_threshold(momentum, 0, type = "above")
 filter_threshold <- function(signal_df, value, type = c("above", "below")) {
@@ -215,10 +217,10 @@ filter_range <- function(signal_df, lower, upper, type = c("inside", "outside"))
 #' @return Binary selection matrix (1 = selected, 0 = not selected)
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
 #' # Select 10 highest momentum stocks
 #' top_momentum <- filter_top_n(momentum, n = 10)
-#' # Select 5 lowest volatility stocks
-#' low_vol <- filter_top_n(volatility, n = 5, ascending = TRUE)
 filter_top_n <- function(signal_df, n, ascending = FALSE) {
   # Select top N (highest) or bottom N (lowest) stocks by signal strength
   # OPTIMIZED VERSION: 5-10x faster than original implementation
@@ -272,8 +274,9 @@ filter_top_n <- function(signal_df, n, ascending = FALSE) {
 #' @return Binary selection matrix
 #' @export
 #' @examples
-#' # Select stocks with RSI > 70
-#' overbought <- filter_above(rsi, 70)
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
+#' high_rsi <- filter_above(rsi, 70)
 filter_above <- function(signal_df, value) {
   filter_threshold(signal_df, value, type = "above")
 }
@@ -289,7 +292,8 @@ filter_above <- function(signal_df, value) {
 #' @return Binary selection matrix
 #' @export
 #' @examples
-#' # Select stocks with RSI < 30
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
 #' oversold <- filter_below(rsi, 30)
 filter_below <- function(signal_df, value) {
   filter_threshold(signal_df, value, type = "below")
@@ -306,6 +310,8 @@ filter_below <- function(signal_df, value) {
 #' @return Binary selection matrix
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
 #' # Select stocks with RSI between 30 and 70
 #' neutral_rsi <- filter_between(rsi, 30, 70)
 filter_between <- function(signal_df, lower, upper) {
@@ -388,6 +394,12 @@ validate_filter_result <- function(selected_df, original_df) {
 #' @return Binary selection matrix
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
+#' # Calculate indicators
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' distance_from_ma <- calc_distance(sample_prices_weekly, ma20)
+#'
 #' # Top 10 momentum stocks from those above MA
 #' above_ma <- filter_above(distance_from_ma, 0)
 #' top_qualified <- filter_top_n_where(momentum, 10, above_ma)
@@ -479,9 +491,17 @@ filter_top_n_where <- function(signal_df, n, condition_df, min_qualified = 1, as
 #' @return Modified selection matrix respecting regime
 #' @export
 #' @examples
-#' # Only trade when SPY above 200-day MA
-#' # Example with sample data:
-#' # data(sample_prices_weekly)
+#' data("sample_prices_weekly")
+#' # Create selection
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' selected <- filter_top_n(momentum, 10)
+#'
+#' # Only trade when SPY above 20-week MA
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' spy_regime <- sample_prices_weekly$SPY > ma20$SPY
+#' spy_regime[is.na(spy_regime)] <- FALSE
+#'
+#' regime_filtered <- apply_regime(selected, spy_regime)
 apply_regime <- function(selection_df, regime_condition, partial_weight = 0) {
   # Input validation
   validate_signal_data(selection_df, "apply_regime")
@@ -546,16 +566,11 @@ apply_regime <- function(selection_df, regime_condition, partial_weight = 0) {
 
 
 
-
-# Add to filters.R or utils.R
-# After apply_regime
-
 #' Limit the number of positions in a selection matrix
 #'
+#' @description
 #' This function enforces position limits, keeping only the top N securities
-#' when more are selected. This is crucial for portfolio concentration management
-#' and institutional constraints. When more than max_positions are selected,
-#' it keeps the highest-ranked ones according to the ranking signal.
+#' when more are selected.
 #'
 #' @param selection_df Binary selection matrix
 #' @param max_positions Maximum number of positions allowed
@@ -563,14 +578,16 @@ apply_regime <- function(selection_df, regime_condition, partial_weight = 0) {
 #' @param verbose Print information about position limiting (default: FALSE)
 #'
 #' @return Selection matrix with at most max_positions securities selected per period
-#'
+#' @export
 #' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' # Create a selection of top 30 stocks
+#' my_selections <- filter_top_n(momentum, 30)
 #' # Limit to 20 positions, ranked by momentum
 #' concentrated <- limit_positions(my_selections, 20, momentum)
-#'
 #' # Limit to 10 positions, keeping existing selections randomly
 #' limited <- limit_positions(my_selections, 10)
-#'
 limit_positions <- function(selection_df, max_positions, ranking_signal = NULL, verbose = FALSE) {
   # Input validation
   validate_signal_data(selection_df, "limit_positions")
@@ -659,7 +676,23 @@ limit_positions <- function(selection_df, max_positions, ranking_signal = NULL, 
 
 
 
-# Add to filters.R after filter_between
+#' Filter by Percentile
+#'
+#' @description
+#' Select securities in the top or bottom X percentile.
+#' More intuitive than filter_top_n when universe size varies.
+#'
+#' @param signal_df DataFrame with signal values
+#' @param percentile Percentile threshold (0-100)
+#' @param type "top" for highest signals, "bottom" for lowest
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' # Select top 20th percentile
+#' top_20pct <- filter_by_percentile(momentum, 20, type = "top")
 filter_by_percentile <- function(signal_df, percentile, type = c("top", "bottom")) {
   # Select securities in the top or bottom X percentile
   #
@@ -734,10 +767,14 @@ filter_by_percentile <- function(signal_df, percentile, type = c("top", "bottom"
 #' @return Combined binary selection matrix
 #' @export
 #' @examples
-#' # Combine momentum and RSI filters
-#' high_momentum <- filter_above(momentum, 0.1)
-#' good_rsi <- filter_between(rsi, 30, 70)
-#' combined <- combine_filters(high_momentum, good_rsi, op = "and")
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
+#' # Create individual filters
+#' high_momentum <- filter_above(momentum, 0.05)
+#' moderate_rsi <- filter_between(rsi, 40, 60)
+#' # Combine them
+#' combined <- combine_filters(high_momentum, moderate_rsi, op = "and")
 combine_filters <- function(..., op = "and", apply_when = NULL, debug = FALSE) {
   # Combine multiple filter conditions with AND/OR logic
   # FIXED VERSION with better error handling and debugging

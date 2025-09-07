@@ -20,6 +20,8 @@ Binary selection matrix
 Selects stocks above or below a threshold value.
 }
 \examples{
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, 12)
 # Select stocks with positive momentum
 positive <- filter_threshold(momentum, 0, type = "above")
 }

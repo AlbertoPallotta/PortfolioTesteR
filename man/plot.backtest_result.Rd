@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{backtest_result object}
 
-\item{type}{Plot type: "performance", "positions", or "weights"}
+\item{type}{Plot type: "performance", "drawdown", "weights", or "all"}
 
 \item{...}{Additional plotting parameters}
 }
@@ -17,17 +17,13 @@
 NULL (creates plot)
 }
 \description{
-S3 method for visualizing backtest results. Supports multiple plot types
-including equity curve, drawdowns, and position counts.
+S3 plot method for visualizing backtest performance.
 }
 \examples{
-# Create a backtest result to use
-data(sample_prices_weekly)
+data("sample_prices_weekly")
 momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 selected <- filter_top_n(momentum, n = 10)
 weights <- weight_equally(selected)
 result <- run_backtest(sample_prices_weekly, weights)
-
-# Plot the results
-plot(result, type = "performance")
+plot(result)
 }

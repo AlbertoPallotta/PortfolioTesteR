@@ -29,10 +29,9 @@ have broad strength vs concentrated leadership. Optimized using pre-splitting
 for speed.
 }
 \examples{
-# Breadth above MA by sector
-above_ma <- sample_prices_weekly > calc_moving_average(sample_prices_weekly, 200)
+data("sample_prices_weekly")
+data("sample_sp500_sectors")
+ma200 <- calc_moving_average(sample_prices_weekly, 200)
+above_ma <- filter_above(calc_distance(sample_prices_weekly, ma200), 0)
 sector_breadth <- calc_sector_breadth(above_ma, sample_sp500_sectors)
-
-# Identify strong sectors (>70\% participation)
-tech_strong <- sector_breadth$Breadth_Technology > 70
 }

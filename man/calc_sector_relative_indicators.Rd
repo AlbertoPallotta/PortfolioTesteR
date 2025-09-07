@@ -35,9 +35,10 @@ Enables sector-neutral strategies and identifies sector outperformers.
 }
 \examples{
 # Find stocks outperforming their sector
-momentum <- calc_momentum(prices, 12)
+data("sample_prices_weekly")
+data("sample_sp500_sectors")
+momentum <- calc_momentum(sample_prices_weekly, 12)
 relative_momentum <- calc_sector_relative_indicators(
-  momentum, sectors, method = "difference"
+  momentum, sample_sp500_sectors, method = "difference"
 )
-sector_winners <- filter_above(relative_momentum, 0.05)
 }

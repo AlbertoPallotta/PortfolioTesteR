@@ -17,5 +17,6 @@ Automatically detects whether data is daily, weekly, monthly, or
 quarterly based on date spacing.
 }
 \examples{
-freq <- get_data_frequency(prices$Date)
+data("sample_prices_weekly")
+freq <- get_data_frequency(sample_prices_weekly$Date)
 }

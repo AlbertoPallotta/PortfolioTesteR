@@ -13,7 +13,8 @@ calculate_daily_values(
 )
 }
 \arguments{
-\item{positions}{Position data from backtest}
+\item{positions}{Position data from backtest
+data("sample_prices_weekly")}
 
 \item{daily_prices}{Daily price data}
 

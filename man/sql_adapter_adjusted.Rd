@@ -37,8 +37,12 @@ Loads adjusted stock prices (for splits/dividends) from SQLite database.
 Handles missing adjusted prices gracefully with warnings.
 }
 \examples{
+\dontrun{
 # Load monthly adjusted prices
-prices <- sql_adapter_adjusted("sp500.db", symbols,
+prices <- sql_adapter_adjusted("sp500.db",
+                              c("AAPL", "MSFT", "GOOGL"),
                               start_date = "2020-01-01",
+                              end_date = "2021-01-01",
                               frequency = "monthly")
+}
 }

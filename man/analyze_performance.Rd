@@ -33,8 +33,8 @@ and benchmark comparison even when strategy trades at lower frequency.
 }
 \examples{
 # Load sample data
-data(sample_prices_weekly)
-data(sample_prices_daily)
+data("sample_prices_weekly")
+data("sample_prices_daily")
 
 # Run a backtest first
 momentum <- calc_momentum(sample_prices_weekly, lookback = 12)

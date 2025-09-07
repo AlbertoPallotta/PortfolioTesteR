@@ -34,8 +34,11 @@ Loads stock price data from SQLite database with automatic frequency conversion.
 Supports daily, weekly, and monthly frequencies with auto-update capability.
 }
 \examples{
+\dontrun{
 # Load weekly data for specific symbols
 prices <- sql_adapter("sp500.db", c("AAPL", "MSFT"),
                      start_date = "2020-01-01",
+                     end_date = "2021-01-01",
                      frequency = "weekly")
+}
 }

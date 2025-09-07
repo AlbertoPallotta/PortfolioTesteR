@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{align_to_timeframe}
 \alias{align_to_timeframe}
-\title{Align High-Frequency Data to Low-Frequency Dates}
+\title{Align Data to Strategy Timeframe}
 \usage{
 align_to_timeframe(
   high_freq_data,
@@ -11,30 +11,25 @@ align_to_timeframe(
 )
 }
 \arguments{
-\item{high_freq_data}{High-frequency data (e.g., daily)}
+\item{high_freq_data}{Data frame to align}
 
-\item{low_freq_dates}{Target dates to align to}
+\item{low_freq_dates}{Date vector from strategy}
 
-\item{method}{"forward_fill", "nearest", or "interpolate"}
+\item{method}{Alignment method: "forward_fill", "nearest", or "interpolate"}
 }
 \value{
-Data aligned to low-frequency dates
+Aligned data frame
 }
 \description{
-Aligns indicators calculated on one timeframe (e.g., daily) to a trading
-timeframe (e.g., weekly). Uses data.table rolling joins for speed.
+Aligns higher-frequency data to match strategy timeframe.
 }
 \examples{
-# Create sample data for the example
-daily_data <- data.table::data.table(
-  Date = seq(as.Date("2023-01-01"), by = "day", length.out = 100),
-  AAPL = runif(100, 100, 110),
-  MSFT = runif(100, 200, 210)
-)
-
-# Create weekly dates to align to
-weekly_dates <- seq(as.Date("2023-01-01"), by = "week", length.out = 15)
-
-# Align daily data to weekly dates
-weekly_aligned <- align_to_timeframe(daily_data, weekly_dates, "forward_fill")
+data("sample_prices_weekly")
+data("sample_prices_daily")
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, 10)
+# Create a stability signal from daily data
+daily_vol <- calc_rolling_volatility(sample_prices_daily, lookback = 20)
+stability_signal <- align_to_timeframe(daily_vol, sample_prices_weekly$Date)
+weights <- weight_by_signal(selected, stability_signal)
 }

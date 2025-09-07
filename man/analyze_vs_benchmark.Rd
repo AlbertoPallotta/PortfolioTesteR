@@ -12,7 +12,8 @@ analyze_vs_benchmark(
 )
 }
 \arguments{
-\item{portfolio_returns}{Portfolio return series}
+\item{portfolio_returns}{Portfolio return series
+data("sample_prices_weekly")}
 
 \item{benchmark_prices}{Benchmark price data with dates}
 

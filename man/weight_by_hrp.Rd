@@ -50,10 +50,15 @@ The function accepts price data and calculates returns internally,
 matching the pattern of other library functions like calc_momentum().
 }
 \examples{
+data("sample_prices_daily")
+data("sample_prices_weekly")
+# Create a selection first
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, n = 10)
+
 # Using daily prices for risk calculation
-weights <- weight_by_hrp(selected, daily_prices, lookback_periods = 252)
+weights <- weight_by_hrp(selected, sample_prices_daily, lookback_periods = 252)
 
 # Using correlation-based clustering
-weights <- weight_by_hrp(selected, daily_prices, use_correlation = TRUE)
-s
+weights <- weight_by_hrp(selected, sample_prices_daily, use_correlation = TRUE)
 }

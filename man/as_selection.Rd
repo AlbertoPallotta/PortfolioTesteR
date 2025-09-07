@@ -19,8 +19,8 @@ Converts condition matrices or data frames to standard selection format
 with Date column and binary values. Handles NA by converting to 0.
 }
 \examples{
-# Convert logical conditions to selection
+data("sample_prices_weekly")
 ma20 <- calc_moving_average(sample_prices_weekly, 20)
-above_ma <- sample_prices_weekly > ma20
+above_ma <- filter_above(calc_distance(sample_prices_weekly, ma20), 0)
 selection <- as_selection(above_ma, sample_prices_weekly$Date)
 }

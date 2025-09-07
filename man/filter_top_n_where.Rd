@@ -31,6 +31,12 @@ Selects top N stocks by signal, but only from those meeting a condition.
 Combines qualification and ranking in one step.
 }
 \examples{
+data("sample_prices_weekly")
+# Calculate indicators
+momentum <- calc_momentum(sample_prices_weekly, 12)
+ma20 <- calc_moving_average(sample_prices_weekly, 20)
+distance_from_ma <- calc_distance(sample_prices_weekly, ma20)
+
 # Top 10 momentum stocks from those above MA
 above_ma <- filter_above(distance_from_ma, 0)
 top_qualified <- filter_top_n_where(momentum, 10, above_ma)

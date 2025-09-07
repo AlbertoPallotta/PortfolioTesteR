@@ -20,7 +20,8 @@ Imports:
     stats,
     TTR,
     utils,
-    zoo
+    zoo,
+    rvest
 Suggests:
     knitr,
     rmarkdown

@@ -19,5 +19,6 @@ Calculates CCI using closing prices. CCI measures deviation from average price.
 Values above 100 indicate overbought, below -100 indicate oversold.
 }
 \examples{
-cci <- calc_cci(prices, period = 20)
+data("sample_prices_weekly")
+cci <- calc_cci(sample_prices_weekly, period = 20)
 }

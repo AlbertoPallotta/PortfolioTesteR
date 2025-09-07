@@ -35,12 +35,22 @@ Enables adaptive strategies that change allocation approach in different
 market conditions.
 }
 \examples{
+data("sample_prices_weekly")
+# Create selection and signals
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, n = 10)
+
+# Create a simple regime (example: based on market trend)
+ma20 <- calc_moving_average(sample_prices_weekly, 20)
+spy_price <- sample_prices_weekly$SPY
+spy_ma <- ma20$SPY
+regime <- ifelse(spy_price > spy_ma, 1, 2)
+
 # Different weights for bull/bear markets
-# Example requires setup:
-# data(sample_prices_weekly)
-# ma200 <- calc_moving_average(sample_prices_weekly, 200)
-# spy_price <- sample_prices_weekly$SPY
-# spy_ma <- ma200$SPY
-# regime <- ifelse(spy_price > spy_ma, 1, 2)
-weights <- weight_by_regime(selected, regime, method = "signal", signal_df = momentum)
+weighting_configs <- list(
+  "1" = list(method = "equal"),
+  "2" = list(method = "signal")
+)
+weights <- weight_by_regime(selected, regime, weighting_configs,
+                            signal_df = momentum)
 }

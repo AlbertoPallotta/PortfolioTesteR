@@ -19,6 +19,7 @@ Calculates RSI for each column. RSI ranges from 0-100.
 Above 70 indicates overbought, below 30 indicates oversold.
 }
 \examples{
-rsi <- calc_rsi(prices, period = 14)
+data("sample_prices_weekly")
+rsi <- calc_rsi(sample_prices_weekly, period = 14)
 overbought <- filter_above(rsi, 70)
 }

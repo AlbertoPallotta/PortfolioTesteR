@@ -24,7 +24,8 @@ using matrix operations for 15x speedup.
 }
 \examples{
 # Rank RSI across all stocks
-rsi <- calc_rsi(prices, 14)
+data("sample_prices_weekly")
+rsi <- calc_rsi(sample_prices_weekly, 14)
 rsi_ranks <- calc_relative_strength_rank(rsi, method = "percentile")
 
 # Find relatively overbought (top 10\%)

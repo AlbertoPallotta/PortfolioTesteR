@@ -29,10 +29,8 @@ selecting best stocks from each sector regardless of sector performance.
 Optimized using matrix operations within groups.
 }
 \examples{
-# Rank momentum within sectors
-momentum <- calc_momentum(prices, 12)
-sector_ranks <- rank_within_sector(momentum, sectors, "percentile")
-
-# Select top 20\% from each sector
-top_in_sector <- filter_above(sector_ranks, 80)
+data("sample_prices_weekly")
+data("sample_sp500_sectors")
+momentum <- calc_momentum(sample_prices_weekly, 12)
+sector_ranks <- rank_within_sector(momentum, sample_sp500_sectors)
 }

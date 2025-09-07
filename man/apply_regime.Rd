@@ -21,7 +21,15 @@ Applies regime-based filtering. When regime is FALSE (e.g., bear market),
 all selections become 0, moving portfolio to cash.
 }
 \examples{
-# Only trade when SPY above 200-day MA
-# Example with sample data:
-# data(sample_prices_weekly)
+data("sample_prices_weekly")
+# Create selection
+momentum <- calc_momentum(sample_prices_weekly, 12)
+selected <- filter_top_n(momentum, 10)
+
+# Only trade when SPY above 20-week MA
+ma20 <- calc_moving_average(sample_prices_weekly, 20)
+spy_regime <- sample_prices_weekly$SPY > ma20$SPY
+spy_regime[is.na(spy_regime)] <- FALSE
+
+regime_filtered <- apply_regime(selected, spy_regime)
 }

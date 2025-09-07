@@ -18,5 +18,6 @@ to prevent accidental data mutation. Core safety function used
 throughout the library.
 }
 \examples{
-dt <- ensure_dt_copy(prices)  # Safe to modify dt
+data("sample_prices_weekly")
+dt <- ensure_dt_copy(sample_prices_weekly)  # Safe to modify dt
 }

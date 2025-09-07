@@ -52,19 +52,19 @@ validate_matching_structure <- function(df1, df2, function_name) {
 ###############################################################################
 # CORE WEIGHTING FUNCTIONS
 ###############################################################################
-# Complete weight_equally with automatic NA handling
 #' Equal Weight Portfolio Construction
 #'
 #' @description
-#' Creates equal weight portfolio from selected stocks. Each selected stock
-#' receives 1/N weight. Optimized version using vectorized operations.
+#' Creates equal-weighted portfolio from selection matrix.
+#' The simplest and often most robust weighting scheme.
 #'
 #' @param selected_df Binary selection matrix (1 = selected, 0 = not)
 #'
-#' @return Data.table with portfolio weights (sum to 1 per period)
+#' @return Data.table with equal weights for selected securities
 #' @export
 #' @examples
-#' # Equal weight for top 10 momentum stocks
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 #' selected <- filter_top_n(momentum, 10)
 #' weights <- weight_equally(selected)
 weight_equally <- function(selected_df) {
@@ -102,20 +102,22 @@ weight_equally <- function(selected_df) {
   return(weight_df)
 }
 
-#' Signal-Weighted Portfolio Construction
+#' Signal-Based Portfolio Weighting
 #'
 #' @description
-#' Weights stocks proportionally to signal strength. Higher signal values
-#' receive higher weights. Optimized using vectorized operations (40x faster).
+#' Weights selected securities proportionally to their signal strength.
+#' Stronger signals receive higher allocations.
 #'
-#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#' @param selected_df Binary selection matrix
 #' @param signal_df Signal values for weighting
 #'
-#' @return Data.table with portfolio weights (sum to 1 per period)
+#' @return Data.table with signal-proportional weights
 #' @export
 #' @examples
-#' # Weight by momentum strength
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 #' selected <- filter_top_n(momentum, 10)
+#' # Weight by momentum strength
 #' weights <- weight_by_signal(selected, momentum)
 weight_by_signal <- function(selected_df, signal_df) {
   # Weight selected stocks proportionally to their signal strength
@@ -214,24 +216,24 @@ weight_by_signal <- function(selected_df, signal_df) {
 #' Rank-Based Portfolio Weighting
 #'
 #' @description
-#' Weights stocks based on their rank. Supports linear (proportional to rank),
-#' exponential (emphasizes top ranks), and equal weighting methods.
-#' Optimized version with 100x speedup.
+#' Weights securities based on their rank rather than raw signal values.
+#' Useful when signal magnitudes are unreliable but ordering is meaningful.
 #'
-#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#' @param selected_df Binary selection matrix
 #' @param signal_df Signal values for ranking
-#' @param method Ranking method: "linear" or "exponential" (default: "linear")
-#' @param ascending Sort order for ranking
+#' @param method Weighting method: "linear" or "exponential"
+#' @param ascending Sort order for ranking (default: FALSE)
 #'
-#' @return Data.table with portfolio weights (sum to 1 per period)
+#' @return Data.table with rank-based weights
 #' @export
 #' @examples
-#' # Linear rank weighting (best gets most)
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 #' selected <- filter_top_n(momentum, 10)
+#' # Linear rank weighting (best gets most)
 #' weights <- weight_by_rank(selected, momentum, method = "linear")
-#'
-#' # Exponential with strong decay (heavy on top stocks)
-#' weights_exp <- weight_by_rank(selected, momentum, method = "exponential", decay = 0.3)
+#' # Exponential (heavy on top stocks)
+#' weights_exp <- weight_by_rank(selected, momentum, method = "exponential")
 weight_by_rank <- function(selected_df, signal_df, method = c("linear", "exponential"), ascending = FALSE) {
   # Weight selected stocks by their signal rank
   # OPTIMIZED VERSION: 40-105x faster using matrix operations
@@ -364,9 +366,8 @@ weight_by_rank <- function(selected_df, signal_df, method = c("linear", "exponen
 #' Volatility-Based Portfolio Weighting
 #'
 #' @description
-#' Weights stocks based on volatility with multiple calculation and weighting methods.
-#' Supports various volatility estimators (std, range, MAD, absolute returns) and
-#' weighting approaches (rank, equal, inverse variance).
+#' Weights securities based on their volatility characteristics.
+#' Can prefer low-volatility (defensive) or high-volatility (aggressive) stocks.
 #'
 #' @param selected_df Binary selection matrix (1 = selected, 0 = not)
 #' @param vol_timeframe_data Price data for volatility calculation (usually daily)
@@ -379,8 +380,13 @@ weight_by_rank <- function(selected_df, signal_df, method = c("linear", "exponen
 #' @return Data.table with volatility-based weights
 #' @export
 #' @examples
-#' # Prefer low volatility stocks
-#' weights <- weight_by_volatility(selected, daily_prices, low_vol_preference = TRUE)
+#' data("sample_prices_weekly")
+#' data("sample_prices_daily")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, 10)
+#' daily_vol <- calc_rolling_volatility(sample_prices_daily, lookback = 252)
+#' aligned_vol <- align_to_timeframe(daily_vol, sample_prices_weekly$Date)
+#' weights <- weight_by_volatility(selected, aligned_vol, low_vol_preference = TRUE)
 weight_by_volatility <- function(selected_df, vol_timeframe_data,
                                  strategy_timeframe_data = NULL,
                                  lookback_periods = 26,
@@ -736,19 +742,28 @@ weight_by_volatility <- function(selected_df, vol_timeframe_data,
 #' @return Data.table with regime-adaptive weights
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
+#' # Create selection and signals
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#'
+#' # Create a simple regime (example: based on market trend)
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' spy_price <- sample_prices_weekly$SPY
+#' spy_ma <- ma20$SPY
+#' regime <- ifelse(spy_price > spy_ma, 1, 2)
+#'
 #' # Different weights for bull/bear markets
-#' # Example requires setup:
-#' # data(sample_prices_weekly)
-#' # ma200 <- calc_moving_average(sample_prices_weekly, 200)
-#' # spy_price <- sample_prices_weekly$SPY
-#' # spy_ma <- ma200$SPY
-#' # regime <- ifelse(spy_price > spy_ma, 1, 2)
-#' weights <- weight_by_regime(selected, regime, method = "signal", signal_df = momentum)
+#' weighting_configs <- list(
+#'   "1" = list(method = "equal"),
+#'   "2" = list(method = "signal")
+#' )
+#' weights <- weight_by_regime(selected, regime, weighting_configs,
+#'                             signal_df = momentum)
 weight_by_regime <- function(selected_df, regime, weighting_configs,
                              signal_df = NULL, vol_timeframe_data = NULL,
                              strategy_timeframe_data = NULL) {
-  # Apply different weighting methods based on market regime
-  # FIXED: Robust multi-timeframe handling and error recovery
+
 
   # Input validation
   validate_selection_data(selected_df, "weight_by_regime")
@@ -1054,6 +1069,12 @@ summary_weights <- function(weight_df) {
 #' @return Data.table with blended portfolio weights
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
+#' # Calculate signals
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' volatility <- calc_rolling_volatility(sample_prices_weekly, lookback = 20)
+#'
 #' # Combine momentum and low-vol weights
 #' mom_weights <- weight_by_signal(selected, momentum)
 #' vol_weights <- weight_by_signal(selected, invert_signal(volatility))
@@ -1192,44 +1213,33 @@ validate_weights <- function(weight_df, tolerance = 1e-10) {
 
 
 
-#' Switch Between Weight Matrices by Condition
+#' Switch Between Weighting Schemes
 #'
 #' @description
-#' Enables regime-based strategy switching by selecting weights from two
-#' pre-calculated weight matrices based on a condition vector. Common for
-#' switching between defensive and aggressive portfolios.
+#' Dynamically switches between two weighting schemes based on a signal.
+#' Enables tactical allocation changes.
 #'
 #' @param weights_a Primary weight matrix
 #' @param weights_b Alternative weight matrix
 #' @param use_b_condition Logical vector (TRUE = use weights_b)
 #' @param partial_blend Blend factor 0-1 (default: 1 = full switch)
 #'
-#' @return Weight matrix with appropriate weights per period
+#' @return Combined weight matrix
 #' @export
-
 #' @examples
-#' # Load sample data
-#' data(sample_prices_weekly)
-#'
-#' # Calculate different weight schemes
+#' data("sample_prices_weekly")
 #' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 #' selected <- filter_top_n(momentum, n = 10)
-#'
-#' # Create weight schemes
 #' weights_equal <- weight_equally(selected)
 #' weights_signal <- weight_by_signal(selected, momentum)
 #'
-#' # Create switching signal (example: use AAPL momentum as regime indicator)
-#' aapl_momentum <- momentum$AAPL
-#' switch_signal <- as.numeric(aapl_momentum > median(aapl_momentum, na.rm = TRUE))
+#' # Create switching signal (example: use SPY momentum as regime indicator)
+#' spy_momentum <- momentum$SPY
+#' switch_signal <- as.numeric(spy_momentum > median(spy_momentum, na.rm = TRUE))
 #' switch_signal[is.na(switch_signal)] <- 0
 #'
 #' # Switch between strategies
-#' final_weights <- switch_weights(
-#'   weights_equal,
-#'   weights_signal,
-#'   switch_signal
-#' )
+#' final_weights <- switch_weights(weights_equal, weights_signal, switch_signal)
 switch_weights <- function(weights_a, weights_b, use_b_condition, partial_blend = 1) {
   # Validate inputs
   if (!is.data.frame(weights_a) && !is.data.table(weights_a)) {
@@ -1413,6 +1423,7 @@ calculate_cluster_variance_optimized <- function(cov_matrix, asset_names) {
 
 #' Hierarchical Risk Parity Weighting
 #'
+#' @description
 #' Calculates portfolio weights using Hierarchical Risk Parity (HRP) methodology.
 #' HRP combines hierarchical clustering with risk-based allocation to create
 #' diversified portfolios that don't rely on unstable correlation matrix inversions.
@@ -1439,14 +1450,19 @@ calculate_cluster_variance_optimized <- function(cov_matrix, asset_names) {
 #' The function accepts price data and calculates returns internally,
 #' matching the pattern of other library functions like calc_momentum().
 #'
+#' @export
 #' @examples
+#' data("sample_prices_daily")
+#' data("sample_prices_weekly")
+#' # Create a selection first
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#'
 #' # Using daily prices for risk calculation
-#' weights <- weight_by_hrp(selected, daily_prices, lookback_periods = 252)
+#' weights <- weight_by_hrp(selected, sample_prices_daily, lookback_periods = 252)
 #'
 #' # Using correlation-based clustering
-#' weights <- weight_by_hrp(selected, daily_prices, use_correlation = TRUE)
-#'s
-
+#' weights <- weight_by_hrp(selected, sample_prices_daily, use_correlation = TRUE)
 weight_by_hrp <- function(selected_df, prices_df,
                           lookback_periods = 252,
                           cluster_method = "ward.D2",
@@ -1769,16 +1785,22 @@ calculate_cluster_variance_optimized <- function(cov_matrix, asset_names) {
 #'
 #' @return Weight matrix with same dates as selected_df, rows sum to 1
 #'
+#' @export
 #' @examples
+#' data("sample_prices_daily")
+#' data("sample_prices_weekly")
+#' # Create a selection first
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#'
 #' # Simple inverse volatility weighting
-#' weights <- weight_by_risk_parity(selected, daily_prices, method = "inverse_vol")
+#' weights <- weight_by_risk_parity(selected, sample_prices_daily, method = "inverse_vol")
 #'
 #' # Equal Risk Contribution for balanced exposure
-#' weights <- weight_by_risk_parity(selected, daily_prices, method = "equal_risk")
+#' weights <- weight_by_risk_parity(selected, sample_prices_daily, method = "equal_risk")
 #'
 #' # Maximum Diversification Portfolio
-#' weights <- weight_by_risk_parity(selected, daily_prices, method = "max_div")
-#'
+#' weights <- weight_by_risk_parity(selected, sample_prices_daily, method = "max_div")
 weight_by_risk_parity <- function(selected_df, prices_df,  # Changed from returns_df
                                   method = c("inverse_vol", "equal_risk", "max_div"),
                                   lookback_periods = 252,

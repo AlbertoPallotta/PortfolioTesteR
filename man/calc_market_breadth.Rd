@@ -20,10 +20,8 @@ Useful for assessing market health and identifying broad vs narrow moves.
 }
 \examples{
 # Percent of stocks above 200-day MA
+data("sample_prices_weekly")
 ma200 <- calc_moving_average(sample_prices_weekly, 200)
-above_ma <- sample_prices_weekly > ma200
+above_ma <- filter_above(calc_distance(sample_prices_weekly, ma200), 0)
 breadth <- calc_market_breadth(above_ma)
-
-# Identify broad rallies (>70\% participation)
-broad_rally <- breadth$Breadth_Percent > 70
 }

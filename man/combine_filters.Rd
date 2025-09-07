@@ -22,8 +22,12 @@ Combined binary selection matrix
 Combines multiple filter conditions using AND or OR logic.
 }
 \examples{
-# Combine momentum and RSI filters
-high_momentum <- filter_above(momentum, 0.1)
-good_rsi <- filter_between(rsi, 30, 70)
-combined <- combine_filters(high_momentum, good_rsi, op = "and")
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, 12)
+rsi <- calc_rsi(sample_prices_weekly, 14)
+# Create individual filters
+high_momentum <- filter_above(momentum, 0.05)
+moderate_rsi <- filter_between(rsi, 40, 60)
+# Combine them
+combined <- combine_filters(high_momentum, moderate_rsi, op = "and")
 }

@@ -18,8 +18,13 @@ Useful when high values indicate something to avoid. For example, inverting
 volatility makes low-vol stocks appear as high signals.
 }
 \examples{
+data("sample_prices_weekly")
 # Prefer low volatility stocks
-volatility <- calc_rolling_volatility(prices, 20)
+volatility <- calc_rolling_volatility(sample_prices_weekly, 20)
 stability_signal <- invert_signal(volatility)
+# Select top 10 momentum stocks first
+momentum <- calc_momentum(sample_prices_weekly, 12)
+selected <- filter_top_n(momentum, 10)
+# Weight by inverted volatility (low vol = high weight)
 weights <- weight_by_signal(selected, stability_signal)
 }

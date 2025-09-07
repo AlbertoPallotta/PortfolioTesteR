@@ -20,5 +20,6 @@ Ensures proper Date formatting and sorting.
 }
 \examples{
 # Use your own data frame
-my_prices <- manual_adapter(my_data)
+data("sample_prices_weekly")
+my_prices <- manual_adapter(sample_prices_weekly)
 }

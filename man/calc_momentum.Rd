@@ -19,5 +19,6 @@ Calculates momentum as the percentage change in price over a specified
 lookback period. Optimized using column-wise operations (25x faster).
 }
 \examples{
-momentum <- calc_momentum(prices, lookback = 12)
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 }

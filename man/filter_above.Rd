@@ -18,6 +18,7 @@ Binary selection matrix
 Convenience function to select stocks with signal above a value.
 }
 \examples{
-# Select stocks with RSI > 70
-overbought <- filter_above(rsi, 70)
+data("sample_prices_weekly")
+rsi <- calc_rsi(sample_prices_weekly, 14)
+high_rsi <- filter_above(rsi, 70)
 }

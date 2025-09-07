@@ -21,8 +21,8 @@ Selects the top N (best) or worst N stocks based on signal strength.
 Optimized using matrix operations for 5-10x speedup.
 }
 \examples{
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, 12)
 # Select 10 highest momentum stocks
 top10 <- filter_rank(momentum, 10, type = "top")
-# Select 5 lowest volatility stocks
-low_vol <- filter_rank(volatility, 5, type = "worst")
 }

@@ -7,7 +7,8 @@
 validate_performance_inputs(backtest_result, daily_prices, benchmark_symbol)
 }
 \arguments{
-\item{backtest_result}{Backtest result object}
+\item{backtest_result}{Backtest result object
+data("sample_prices_weekly")}
 
 \item{daily_prices}{Daily price data}
 
@@ -17,6 +18,7 @@ validate_performance_inputs(backtest_result, daily_prices, benchmark_symbol)
 TRUE if valid, stops with error if not
 }
 \description{
+data("sample_prices_weekly")
 Checks that backtest result and daily prices are properly formatted
 with matching symbols and appropriate date coverage.
 }

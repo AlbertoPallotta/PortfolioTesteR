@@ -10,14 +10,15 @@ weight_equally(selected_df)
 \item{selected_df}{Binary selection matrix (1 = selected, 0 = not)}
 }
 \value{
-Data.table with portfolio weights (sum to 1 per period)
+Data.table with equal weights for selected securities
 }
 \description{
-Creates equal weight portfolio from selected stocks. Each selected stock
-receives 1/N weight. Optimized version using vectorized operations.
+Creates equal-weighted portfolio from selection matrix.
+The simplest and often most robust weighting scheme.
 }
 \examples{
-# Equal weight for top 10 momentum stocks
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 selected <- filter_top_n(momentum, 10)
 weights <- weight_equally(selected)
 }

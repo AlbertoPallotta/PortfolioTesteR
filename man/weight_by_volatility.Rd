@@ -33,11 +33,15 @@ weight_by_volatility(
 Data.table with volatility-based weights
 }
 \description{
-Weights stocks based on volatility with multiple calculation and weighting methods.
-Supports various volatility estimators (std, range, MAD, absolute returns) and
-weighting approaches (rank, equal, inverse variance).
+Weights securities based on their volatility characteristics.
+Can prefer low-volatility (defensive) or high-volatility (aggressive) stocks.
 }
 \examples{
-# Prefer low volatility stocks
-weights <- weight_by_volatility(selected, daily_prices, low_vol_preference = TRUE)
+data("sample_prices_weekly")
+data("sample_prices_daily")
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, 10)
+daily_vol <- calc_rolling_volatility(sample_prices_daily, lookback = 252)
+aligned_vol <- align_to_timeframe(daily_vol, sample_prices_weekly$Date)
+weights <- weight_by_volatility(selected, aligned_vol, low_vol_preference = TRUE)
 }

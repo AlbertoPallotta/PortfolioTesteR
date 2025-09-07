@@ -18,5 +18,6 @@ Data.table with moving average values
 Calculates simple moving average for each column in the data.
 }
 \examples{
-ma20 <- calc_moving_average(prices, window = 20)
+data("sample_prices_weekly")
+ma20 <- calc_moving_average(sample_prices_weekly, window = 20)
 }

@@ -15,44 +15,31 @@ run_backtest(
 )
 }
 \arguments{
-\item{prices}{Data frame with Date column and symbol prices}
+\item{prices}{Price data (data.frame with Date column)}
 
-\item{weights}{Data frame with Date column and portfolio weights}
+\item{weights}{Weight matrix from weighting functions}
 
 \item{initial_capital}{Starting capital (default: 100000)}
 
-\item{name}{Strategy name for reporting (default: 'Strategy')}
+\item{name}{Strategy name for reporting}
 
-\item{verbose}{Print detailed transaction info (default: FALSE)}
+\item{verbose}{Print progress messages (default: FALSE)}
 
 \item{stop_loss}{Optional stop loss percentage as decimal}
 
 \item{stop_monitoring_prices}{Optional daily prices for stop monitoring}
 }
 \value{
-backtest_result object with performance data and metrics
+backtest_result object with performance metrics
 }
 \description{
-Core backtesting engine that simulates portfolio performance over time.
-Handles position management, cash tracking, and transaction recording.
+Main backtesting engine that simulates portfolio performance over time.
+Handles position tracking, transaction costs, and performance calculation.
 }
 \examples{
-# Load sample data
-data(sample_prices_weekly)
-
-# Calculate signals
+data("sample_prices_weekly")
 momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 selected <- filter_top_n(momentum, n = 10)
 weights <- weight_equally(selected)
-
-# Basic backtest
-result <- run_backtest(sample_prices_weekly, weights, initial_capital = 100000)
-
-# Access results
-print(result)
-summary(result)
-plot(result, type = 'performance')
-
-# Calculate metrics
-metrics <- backtest_metrics(result)
+result <- run_backtest(sample_prices_weekly, weights)
 }

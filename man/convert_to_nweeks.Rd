@@ -21,8 +21,9 @@ Resamples daily or weekly data to n-week periods. Handles week-ending
 calculations and various aggregation methods.
 }
 \examples{
+data("sample_prices_daily")
 # Convert daily to weekly
-weekly <- convert_to_nweeks(daily_prices, n = 1)
+weekly <- convert_to_nweeks(sample_prices_daily, n = 1)
 # Convert to bi-weekly
-biweekly <- convert_to_nweeks(daily_prices, n = 2)
+biweekly <- convert_to_nweeks(sample_prices_daily, n = 2)
 }

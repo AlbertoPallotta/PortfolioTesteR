@@ -46,13 +46,18 @@ ensuring consistency with other library functions. Daily prices are
 recommended for accurate volatility estimation.
 }
 \examples{
+data("sample_prices_daily")
+data("sample_prices_weekly")
+# Create a selection first
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, n = 10)
+
 # Simple inverse volatility weighting
-weights <- weight_by_risk_parity(selected, daily_prices, method = "inverse_vol")
+weights <- weight_by_risk_parity(selected, sample_prices_daily, method = "inverse_vol")
 
 # Equal Risk Contribution for balanced exposure
-weights <- weight_by_risk_parity(selected, daily_prices, method = "equal_risk")
+weights <- weight_by_risk_parity(selected, sample_prices_daily, method = "equal_risk")
 
 # Maximum Diversification Portfolio
-weights <- weight_by_risk_parity(selected, daily_prices, method = "max_div")
-
+weights <- weight_by_risk_parity(selected, sample_prices_daily, method = "max_div")
 }

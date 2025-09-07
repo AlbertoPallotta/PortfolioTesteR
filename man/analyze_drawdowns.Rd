@@ -2,7 +2,7 @@
 % Please edit documentation in R/performance_analytics.R
 \name{analyze_drawdowns}
 \alias{analyze_drawdowns}
-\title{Analyze Drawdown Statistics}
+\title{Analyze Drawdown Characteristics}
 \usage{
 analyze_drawdowns(drawdowns, returns)
 }
@@ -15,13 +15,13 @@ analyze_drawdowns(drawdowns, returns)
 List with drawdown statistics
 }
 \description{
-Calculates comprehensive drawdown metrics including maximum drawdown,
-average drawdown, duration statistics, and recovery times.
+Detailed analysis of drawdown periods including depth, duration, and recovery.
 }
 \examples{
-# Create sample data
-portfolio_values <- cumsum(rnorm(100, 0.001, 0.02)) + 100
-dd <- calculate_drawdown_series(portfolio_values)
-returns <- diff(portfolio_values)/head(portfolio_values, -1)
-stats <- analyze_drawdowns(dd, returns)
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, n = 10)
+weights <- weight_equally(selected)
+result <- run_backtest(sample_prices_weekly, weights)
+dd_analysis <- analyze_drawdowns(result$portfolio_value, result$dates)
 }

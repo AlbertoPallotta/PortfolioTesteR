@@ -4,8 +4,16 @@
 \name{PortfolioTesteR-package}
 \alias{PortfolioTesteR}
 \alias{PortfolioTesteR-package}
-\title{PortfolioTesteR: What the Package Does (Title Case)}
+\title{PortfolioTesteR: Test Investment Strategies with English-Like Code}
 \description{
-More about what it does (maybe more than one line) Use four spaces when indenting paragraphs within the Description.
+Tools to design, backtest, and analyze portfolio strategies using simple, English-like function chains. Includes momentum, RSI, regime filters, position limits, and multiple weighting schemes with plotting and summaries.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/alb3rtazzo/PortfolioTesteR}
+  \item Report bugs at \url{https://github.com/alb3rtazzo/PortfolioTesteR/issues}
+}
+
 }
 \keyword{internal}

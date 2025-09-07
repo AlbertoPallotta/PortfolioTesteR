@@ -83,10 +83,13 @@ standardize_data_format <- function(data, date_col = "date", symbol_col = "symbo
 #' @return Data.table with Date column and one column per symbol
 #' @export
 #' @examples
+#' \dontrun{
 #' # Load weekly data for specific symbols
 #' prices <- sql_adapter("sp500.db", c("AAPL", "MSFT"),
 #'                      start_date = "2020-01-01",
+#'                      end_date = "2021-01-01",
 #'                      frequency = "weekly")
+#' }
 sql_adapter <- function(db_path, symbols, start_date = NULL, end_date = NULL,
                         auto_update = TRUE, frequency = "daily") {
 
@@ -200,7 +203,34 @@ update_symbols_in_db <- function(db, symbols) {
   }
 }
 
-# Yahoo Finance Direct Adapter (simpler, no database)
+#' Download Price Data from Yahoo Finance
+#'
+#' @description
+#' Downloads stock price data directly from Yahoo Finance using quantmod.
+#' No database required - perfect for quick analysis and experimentation.
+#' Get started with real data in under 5 minutes.
+#'
+#' @param symbols Character vector of stock symbols
+#' @param start_date Start date in "YYYY-MM-DD" format
+#' @param end_date End date in "YYYY-MM-DD" format
+#' @param frequency "daily" or "weekly" (default: "daily")
+#'
+#' @return Data.table with Date column and one column per symbol
+#' @export
+#' @examples
+#' # Download tech stocks for 2023
+#' prices <- yahoo_adapter(
+#'   symbols = c("AAPL", "MSFT", "GOOGL"),
+#'   start_date = "2023-01-01",
+#'   end_date = "2023-12-31",
+#'   frequency = "weekly"
+#' )
+#'
+#' # Build a quick momentum strategy
+#' momentum <- calc_momentum(prices, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 2)
+#' weights <- weight_equally(selected)
+#' result <- run_backtest(prices, weights)
 yahoo_adapter <- function(symbols, start_date, end_date, frequency = "daily") {
 
   if (!requireNamespace("quantmod", quietly = TRUE)) {
@@ -268,10 +298,12 @@ yahoo_adapter <- function(symbols, start_date, end_date, frequency = "daily") {
 #' @return Data.table with Date column and price columns
 #' @export
 #' @examples
+#' \dontrun{
 #' # Load from CSV with custom columns
 #' prices <- csv_adapter("data.csv",
 #'                      date_col = "Date",
 #'                      price_col = "Close")
+#' }
 csv_adapter <- function(file_path, date_col = "Date", symbol_col = "Symbol", price_col = "Price", frequency = "daily", symbol_order = NULL) {
 
   if (!file.exists(file_path)) {
@@ -310,7 +342,8 @@ csv_adapter <- function(file_path, date_col = "Date", symbol_col = "Symbol", pri
 #' @export
 #' @examples
 #' # Use your own data frame
-#' my_prices <- manual_adapter(my_data)
+#' data("sample_prices_weekly")
+#' my_prices <- manual_adapter(sample_prices_weekly)
 manual_adapter <- function(data, date_col = "Date") {
   # For when users provide their own data.frame/data.table
   setDT(data)
@@ -337,8 +370,9 @@ manual_adapter <- function(data, date_col = "Date") {
 #' @return TRUE if valid, stops with error if not
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
 #' # Check if data is properly formatted
-#' validate_data_format(prices)
+#' validate_data_format(sample_prices_weekly)
 validate_data_format <- function(data) {
   required_conditions <- list(
     "Must be data.frame or data.table" = is.data.frame(data),
@@ -415,10 +449,11 @@ check_sql_symbols <- function(db_path, symbols = NULL, start_date = NULL, end_da
 #' @return Data.table resampled to n-week frequency
 #' @export
 #' @examples
+#' data("sample_prices_daily")
 #' # Convert daily to weekly
-#' weekly <- convert_to_nweeks(daily_prices, n = 1)
+#' weekly <- convert_to_nweeks(sample_prices_daily, n = 1)
 #' # Convert to bi-weekly
-#' biweekly <- convert_to_nweeks(daily_prices, n = 2)
+#' biweekly <- convert_to_nweeks(sample_prices_daily, n = 2)
 convert_to_nweeks <- function(data, n = 1, method = "last") {
   # Convert any frequency to n-week periods
   # n=1 gives weekly, n=2 biweekly, n=4 monthly, etc.
@@ -486,7 +521,6 @@ convert_to_nweeks <- function(data, n = 1, method = "last") {
 }
 
 
-# Add this to your data_adapters.R or use separately
 #' Load Adjusted Price Data from SQL Database
 #'
 #' @description
@@ -504,10 +538,14 @@ convert_to_nweeks <- function(data, n = 1, method = "last") {
 #' @return Data.table with Date column and adjusted prices per symbol
 #' @export
 #' @examples
+#' \dontrun{
 #' # Load monthly adjusted prices
-#' prices <- sql_adapter_adjusted("sp500.db", symbols,
+#' prices <- sql_adapter_adjusted("sp500.db",
+#'                               c("AAPL", "MSFT", "GOOGL"),
 #'                               start_date = "2020-01-01",
+#'                               end_date = "2021-01-01",
 #'                               frequency = "monthly")
+#' }
 sql_adapter_adjusted <- function(db_path, symbols, start_date = NULL, end_date = NULL,
                                  auto_update = FALSE, frequency = "daily",
                                  use_adjusted = TRUE) {  # New parameter!
@@ -587,9 +625,6 @@ sql_adapter_adjusted <- function(db_path, symbols, start_date = NULL, end_date =
 
 
 
-
-# load_mixed_symbols.R
-# Helper function to load stocks and VIX together
 #' Load Mixed Symbols Including VIX
 #'
 #' @description
@@ -606,10 +641,13 @@ sql_adapter_adjusted <- function(db_path, symbols, start_date = NULL, end_date =
 #' @return Data.table with all symbols properly loaded
 #' @export
 #' @examples
+#' \dontrun{
 #' # Load stocks and VIX together
 #' data <- load_mixed_symbols("sp500.db",
 #'                           c("AAPL", "MSFT", "VIX"),
-#'                           start_date = "2020-01-01")
+#'                           start_date = "2020-01-01",
+#'                           end_date = "2021-01-01")
+#' }
 load_mixed_symbols <- function(db_path, symbols, start_date, end_date,
                                frequency = "weekly", use_adjusted = TRUE) {
   # Separate VIX from other symbols

@@ -19,12 +19,8 @@ Scrapes current S&P 500 constituent list with sector classifications
 from Wikipedia. Creates both CSV and RDS files for offline use.
 }
 \examples{
-# Download current sector mappings
+\dontrun{
+# Download current sector mappings (requires internet)
 sectors <- download_sp500_sectors()
-
-# Download and save for offline use
-sectors <- download_sp500_sectors(save_csv = TRUE, save_rds = TRUE)
-
-# Check sector distribution
-table(sectors$Sector)
+}
 }

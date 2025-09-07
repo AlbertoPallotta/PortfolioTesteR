@@ -2,7 +2,7 @@
 % Please edit documentation in R/weighting.R
 \name{switch_weights}
 \alias{switch_weights}
-\title{Switch Between Weight Matrices by Condition}
+\title{Switch Between Weighting Schemes}
 \usage{
 switch_weights(weights_a, weights_b, use_b_condition, partial_blend = 1)
 }
@@ -16,34 +16,24 @@ switch_weights(weights_a, weights_b, use_b_condition, partial_blend = 1)
 \item{partial_blend}{Blend factor 0-1 (default: 1 = full switch)}
 }
 \value{
-Weight matrix with appropriate weights per period
+Combined weight matrix
 }
 \description{
-Enables regime-based strategy switching by selecting weights from two
-pre-calculated weight matrices based on a condition vector. Common for
-switching between defensive and aggressive portfolios.
+Dynamically switches between two weighting schemes based on a signal.
+Enables tactical allocation changes.
 }
 \examples{
-# Load sample data
-data(sample_prices_weekly)
-
-# Calculate different weight schemes
+data("sample_prices_weekly")
 momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 selected <- filter_top_n(momentum, n = 10)
-
-# Create weight schemes
 weights_equal <- weight_equally(selected)
 weights_signal <- weight_by_signal(selected, momentum)
 
-# Create switching signal (example: use AAPL momentum as regime indicator)
-aapl_momentum <- momentum$AAPL
-switch_signal <- as.numeric(aapl_momentum > median(aapl_momentum, na.rm = TRUE))
+# Create switching signal (example: use SPY momentum as regime indicator)
+spy_momentum <- momentum$SPY
+switch_signal <- as.numeric(spy_momentum > median(spy_momentum, na.rm = TRUE))
 switch_signal[is.na(switch_signal)] <- 0
 
 # Switch between strategies
-final_weights <- switch_weights(
-  weights_equal,
-  weights_signal,
-  switch_signal
-)
+final_weights <- switch_weights(weights_equal, weights_signal, switch_signal)
 }

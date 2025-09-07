@@ -22,7 +22,9 @@ The %D line is the smoothed version of %K, commonly used for
 momentum signals in range [0,100].
 }
 \examples{
+data("sample_prices_weekly")
 data(sample_prices_weekly)
+data("sample_prices_weekly")
 stoch_d <- calc_stochastic_d(sample_prices_weekly, k = 14, d = 3)
 head(stoch_d)
 }

@@ -34,8 +34,10 @@ Reads stock price data from CSV files with flexible column naming.
 Automatically standardizes to library format.
 }
 \examples{
+\dontrun{
 # Load from CSV with custom columns
 prices <- csv_adapter("data.csv",
                      date_col = "Date",
                      price_col = "Close")
+}
 }

@@ -10,38 +10,25 @@
 #' Run Portfolio Backtest
 #'
 #' @description
-#' Core backtesting engine that simulates portfolio performance over time.
-#' Handles position management, cash tracking, and transaction recording.
+#' Main backtesting engine that simulates portfolio performance over time.
+#' Handles position tracking, transaction costs, and performance calculation.
 #'
-#' @param prices Data frame with Date column and symbol prices
-#' @param weights Data frame with Date column and portfolio weights
+#' @param prices Price data (data.frame with Date column)
+#' @param weights Weight matrix from weighting functions
 #' @param initial_capital Starting capital (default: 100000)
-#' @param name Strategy name for reporting (default: 'Strategy')
-#' @param verbose Print detailed transaction info (default: FALSE)
+#' @param name Strategy name for reporting
+#' @param verbose Print progress messages (default: FALSE)
 #' @param stop_loss Optional stop loss percentage as decimal
 #' @param stop_monitoring_prices Optional daily prices for stop monitoring
 #'
-#' @return backtest_result object with performance data and metrics
+#' @return backtest_result object with performance metrics
 #' @export
 #' @examples
-#' # Load sample data
-#' data(sample_prices_weekly)
-#'
-#' # Calculate signals
+#' data("sample_prices_weekly")
 #' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 #' selected <- filter_top_n(momentum, n = 10)
 #' weights <- weight_equally(selected)
-#'
-#' # Basic backtest
-#' result <- run_backtest(sample_prices_weekly, weights, initial_capital = 100000)
-#'
-#' # Access results
-#' print(result)
-#' summary(result)
-#' plot(result, type = 'performance')
-#'
-#' # Calculate metrics
-#' metrics <- backtest_metrics(result)
+#' result <- run_backtest(sample_prices_weekly, weights)
 run_backtest <- function(prices, weights, initial_capital = 100000,
                          name = "Strategy", verbose = FALSE,
                          stop_loss = NULL, stop_monitoring_prices = NULL) {
@@ -465,8 +452,7 @@ validate_backtest_inputs <- function(prices, weights, initial_capital) {
 #' Print Backtest Results
 #'
 #' @description
-#' S3 method for printing backtest results with key metrics.
-#' Automatically handles warmup period reporting.
+#' S3 print method for backtest results. Shows key performance metrics.
 #'
 #' @param x backtest_result object
 #' @param ... Additional arguments (unused)
@@ -474,14 +460,11 @@ validate_backtest_inputs <- function(prices, weights, initial_capital) {
 #' @return Invisible copy of x
 #' @export
 #' @examples
-#' # Create a backtest result to use
-#' data(sample_prices_weekly)
+#' data("sample_prices_weekly")
 #' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 #' selected <- filter_top_n(momentum, n = 10)
 #' weights <- weight_equally(selected)
 #' result <- run_backtest(sample_prices_weekly, weights)
-#'
-#' # Print the results
 #' print(result)
 print.backtest_result <- function(x, ...) {
   cat("Backtest Result: ", x$name, "\n")
@@ -589,29 +572,24 @@ summary.backtest_result <- function(object, ...) {
 
 
 
-
 #' Plot Backtest Results
 #'
 #' @description
-#' S3 method for visualizing backtest results. Supports multiple plot types
-#' including equity curve, drawdowns, and position counts.
+#' S3 plot method for visualizing backtest performance.
 #'
 #' @param x backtest_result object
-#' @param type Plot type: "performance", "positions", or "weights"
+#' @param type Plot type: "performance", "drawdown", "weights", or "all"
 #' @param ... Additional plotting parameters
 #'
 #' @return NULL (creates plot)
 #' @export
 #' @examples
-#' # Create a backtest result to use
-#' data(sample_prices_weekly)
+#' data("sample_prices_weekly")
 #' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 #' selected <- filter_top_n(momentum, n = 10)
 #' weights <- weight_equally(selected)
 #' result <- run_backtest(sample_prices_weekly, weights)
-#'
-#' # Plot the results
-#' plot(result, type = "performance")
+#' plot(result)
 plot.backtest_result <- function(x, type = "performance", ...) {
   # Plot backtest results
 

@@ -21,8 +21,8 @@ Most commonly used filter function. Selects top N (highest) or bottom N (lowest)
 stocks by signal value. Optimized for 5-10x faster performance.
 }
 \examples{
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, 12)
 # Select 10 highest momentum stocks
 top_momentum <- filter_top_n(momentum, n = 10)
-# Select 5 lowest volatility stocks
-low_vol <- filter_top_n(volatility, n = 5, ascending = TRUE)
 }

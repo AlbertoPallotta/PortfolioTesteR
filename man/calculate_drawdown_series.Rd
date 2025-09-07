@@ -2,7 +2,7 @@
 % Please edit documentation in R/performance_analytics.R
 \name{calculate_drawdown_series}
 \alias{calculate_drawdown_series}
-\title{Calculate Drawdown Series from Values}
+\title{Calculate Drawdown Time Series}
 \usage{
 calculate_drawdown_series(values)
 }
@@ -10,13 +10,16 @@ calculate_drawdown_series(values)
 \item{values}{Numeric vector of portfolio values}
 }
 \value{
-Numeric vector of drawdowns (0 to -1 scale)
+Numeric vector of drawdowns (as negative percentages)
 }
 \description{
-Converts portfolio values to drawdown percentages showing decline
-from previous peaks.
+Computes drawdown series from portfolio values.
 }
 \examples{
-drawdowns <- calculate_drawdown_series(portfolio_values)
-max_dd <- min(drawdowns)  # Maximum drawdown
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, n = 10)
+weights <- weight_equally(selected)
+result <- run_backtest(sample_prices_weekly, weights)
+dd_series <- calculate_drawdown_series(result$portfolio_value)
 }

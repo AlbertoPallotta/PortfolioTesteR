@@ -10,14 +10,10 @@
 #' @return Data.table with columns: Symbol, Security, Sector, SubIndustry, Industry
 #' @export
 #' @examples
-#' # Download current sector mappings
+#' \dontrun{
+#' # Download current sector mappings (requires internet)
 #' sectors <- download_sp500_sectors()
-#'
-#' # Download and save for offline use
-#' sectors <- download_sp500_sectors(save_csv = TRUE, save_rds = TRUE)
-#'
-#' # Check sector distribution
-#' table(sectors$Sector)
+#' }
 download_sp500_sectors <- function(save_csv = FALSE, save_rds = FALSE) {
   # Check if rvest is available
   if (!requireNamespace("rvest", quietly = TRUE)) {

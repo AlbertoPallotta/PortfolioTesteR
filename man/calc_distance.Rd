@@ -15,10 +15,13 @@ calc_distance(price_df, reference_df)
 Data.table with percentage distances
 }
 \description{
+data("sample_prices_weekly")
 Calculates percentage distance between prices and reference values
 (typically moving averages).
 }
 \examples{
-ma20 <- calc_moving_average(prices, 20)
-distance <- calc_distance(prices, ma20)
+data("sample_prices_weekly")
+ma20 <- calc_moving_average(sample_prices_weekly, 20)
+data("sample_prices_weekly")
+distance <- calc_distance(sample_prices_weekly, ma20)
 }

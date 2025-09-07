@@ -22,17 +22,17 @@ types including summary dashboard, return distributions, risk evolution,
 and rolling statistics.
 }
 \examples{
-perf <- analyze_performance(result, daily_prices)
+data("sample_prices_weekly")
+# Create a simple backtest result first
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, n = 10)
+weights <- weight_equally(selected)
+result <- run_backtest(sample_prices_weekly, weights)
 
-# 4-panel summary dashboard
-plot(perf, type = "summary")
-
-# Return distribution analysis
-plot(perf, type = "returns")
-
-# Risk metrics over time
-plot(perf, type = "risk")
-
-# Detailed drawdown analysis
-plot(perf, type = "drawdown")
+# Analyze performance
+\dontrun{
+# Would need daily prices for full analysis
+# perf <- analyze_performance(result, daily_prices)
+# plot(perf, type = "summary")
+}
 }

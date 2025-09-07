@@ -25,15 +25,15 @@ Selection matrix with at most max_positions securities selected per period
 }
 \description{
 This function enforces position limits, keeping only the top N securities
-when more are selected. This is crucial for portfolio concentration management
-and institutional constraints. When more than max_positions are selected,
-it keeps the highest-ranked ones according to the ranking signal.
+when more are selected.
 }
 \examples{
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, 12)
+# Create a selection of top 30 stocks
+my_selections <- filter_top_n(momentum, 30)
 # Limit to 20 positions, ranked by momentum
 concentrated <- limit_positions(my_selections, 20, momentum)
-
 # Limit to 10 positions, keeping existing selections randomly
 limited <- limit_positions(my_selections, 10)
-
 }

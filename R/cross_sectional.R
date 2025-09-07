@@ -17,7 +17,8 @@
 #' @export
 #' @examples
 #' # Rank RSI across all stocks
-#' rsi <- calc_rsi(prices, 14)
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
 #' rsi_ranks <- calc_relative_strength_rank(rsi, method = "percentile")
 #'
 #' # Find relatively overbought (top 10%)
@@ -441,12 +442,10 @@ calc_correlation_dispersion <- function(returns_df = NULL,
 #' @export
 #' @examples
 #' # Percent of stocks above 200-day MA
+#' data("sample_prices_weekly")
 #' ma200 <- calc_moving_average(sample_prices_weekly, 200)
-#' above_ma <- sample_prices_weekly > ma200
+#' above_ma <- filter_above(calc_distance(sample_prices_weekly, ma200), 0)
 #' breadth <- calc_market_breadth(above_ma)
-#'
-#' # Identify broad rallies (>70% participation)
-#' broad_rally <- breadth$Breadth_Percent > 70
 calc_market_breadth <- function(condition_df, min_stocks = 10) {
   # Calculate market breadth - percentage of stocks meeting a condition
   #
@@ -558,12 +557,10 @@ calc_market_breadth <- function(condition_df, min_stocks = 10) {
 #' @return Data frame with within-sector ranks/scores
 #' @export
 #' @examples
-#' # Rank momentum within sectors
-#' momentum <- calc_momentum(prices, 12)
-#' sector_ranks <- rank_within_sector(momentum, sectors, "percentile")
-#'
-#' # Select top 20% from each sector
-#' top_in_sector <- filter_above(sector_ranks, 80)
+#' data("sample_prices_weekly")
+#' data("sample_sp500_sectors")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' sector_ranks <- rank_within_sector(momentum, sample_sp500_sectors)
 rank_within_sector <- function(indicator_df,
                                sector_mapping,
                                method = c("percentile", "rank", "z-score"),
@@ -764,12 +761,11 @@ rank_within_sector <- function(indicator_df,
 #' @return Data.table with Date and Breadth_[Sector] columns (0-100 scale)
 #' @export
 #' @examples
-#' # Breadth above MA by sector
-#' above_ma <- sample_prices_weekly > calc_moving_average(sample_prices_weekly, 200)
+#' data("sample_prices_weekly")
+#' data("sample_sp500_sectors")
+#' ma200 <- calc_moving_average(sample_prices_weekly, 200)
+#' above_ma <- filter_above(calc_distance(sample_prices_weekly, ma200), 0)
 #' sector_breadth <- calc_sector_breadth(above_ma, sample_sp500_sectors)
-#'
-#' # Identify strong sectors (>70% participation)
-#' tech_strong <- sector_breadth$Breadth_Technology > 70
 calc_sector_breadth <- function(condition_df,
                                 sector_mapping,
                                 min_stocks_per_sector = 3,
@@ -972,11 +968,12 @@ calc_sector_breadth <- function(condition_df,
 #' @export
 #' @examples
 #' # Find stocks outperforming their sector
-#' momentum <- calc_momentum(prices, 12)
+#' data("sample_prices_weekly")
+#' data("sample_sp500_sectors")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
 #' relative_momentum <- calc_sector_relative_indicators(
-#'   momentum, sectors, method = "difference"
+#'   momentum, sample_sp500_sectors, method = "difference"
 #' )
-#' sector_winners <- filter_above(relative_momentum, 0.05)
 calc_sector_relative_indicators <- function(indicator_df,
                                             sector_mapping,
                                             method = c("difference", "ratio", "z-score"),

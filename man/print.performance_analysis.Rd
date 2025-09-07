@@ -19,6 +19,17 @@ S3 method for printing performance analysis with key metrics including
 risk-adjusted returns, drawdown statistics, and benchmark comparison.
 }
 \examples{
-perf <- analyze_performance(result, daily_prices)
-print(perf)  # Or just: perf
+data("sample_prices_weekly")
+# Create a simple backtest result first
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, n = 10)
+weights <- weight_equally(selected)
+result <- run_backtest(sample_prices_weekly, weights)
+
+# Analyze performance
+\dontrun{
+# Would need daily prices for full analysis
+# perf <- analyze_performance(result, daily_prices)
+# print(perf)  # Or just: perf
+}
 }

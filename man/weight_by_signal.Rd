@@ -2,24 +2,26 @@
 % Please edit documentation in R/weighting.R
 \name{weight_by_signal}
 \alias{weight_by_signal}
-\title{Signal-Weighted Portfolio Construction}
+\title{Signal-Based Portfolio Weighting}
 \usage{
 weight_by_signal(selected_df, signal_df)
 }
 \arguments{
-\item{selected_df}{Binary selection matrix (1 = selected, 0 = not)}
+\item{selected_df}{Binary selection matrix}
 
 \item{signal_df}{Signal values for weighting}
 }
 \value{
-Data.table with portfolio weights (sum to 1 per period)
+Data.table with signal-proportional weights
 }
 \description{
-Weights stocks proportionally to signal strength. Higher signal values
-receive higher weights. Optimized using vectorized operations (40x faster).
+Weights selected securities proportionally to their signal strength.
+Stronger signals receive higher allocations.
 }
 \examples{
-# Weight by momentum strength
+data("sample_prices_weekly")
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 selected <- filter_top_n(momentum, 10)
+# Weight by momentum strength
 weights <- weight_by_signal(selected, momentum)
 }

@@ -15,17 +15,13 @@
 Invisible copy of x
 }
 \description{
-S3 method for printing backtest results with key metrics.
-Automatically handles warmup period reporting.
+S3 print method for backtest results. Shows key performance metrics.
 }
 \examples{
-# Create a backtest result to use
-data(sample_prices_weekly)
+data("sample_prices_weekly")
 momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 selected <- filter_top_n(momentum, n = 10)
 weights <- weight_equally(selected)
 result <- run_backtest(sample_prices_weekly, weights)
-
-# Print the results
 print(result)
 }

@@ -20,6 +20,12 @@ multi-factor strategies that combine different allocation approaches.
 Optimized using matrix operations for 1000x+ speedup.
 }
 \examples{
+data("sample_prices_weekly")
+# Calculate signals
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+selected <- filter_top_n(momentum, n = 10)
+volatility <- calc_rolling_volatility(sample_prices_weekly, lookback = 20)
+
 # Combine momentum and low-vol weights
 mom_weights <- weight_by_signal(selected, momentum)
 vol_weights <- weight_by_signal(selected, invert_signal(volatility))

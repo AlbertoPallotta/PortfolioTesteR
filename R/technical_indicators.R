@@ -27,7 +27,8 @@ check_ttr <- function() {
 #' @return Data.table with momentum values (0.1 = 10% increase)
 #' @export
 #' @examples
-#' momentum <- calc_momentum(prices, lookback = 12)
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 calc_momentum <- function(data, lookback = 12) {
   # OPTIMIZED VERSION - Column-wise processing using shift
   dt <- ensure_dt_copy(data)
@@ -48,6 +49,7 @@ calc_momentum <- function(data, lookback = 12) {
 #' Calculate Distance from Reference
 #'
 #' @description
+#' data("sample_prices_weekly")
 #' Calculates percentage distance between prices and reference values
 #' (typically moving averages).
 #'
@@ -57,8 +59,10 @@ calc_momentum <- function(data, lookback = 12) {
 #' @return Data.table with percentage distances
 #' @export
 #' @examples
-#' ma20 <- calc_moving_average(prices, 20)
-#' distance <- calc_distance(prices, ma20)
+#' data("sample_prices_weekly")
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' data("sample_prices_weekly")
+#' distance <- calc_distance(sample_prices_weekly, ma20)
 calc_distance <- function(price_df, reference_df) {
   # FIXED: Safe division
   price_dt <- ensure_dt_copy(price_df)
@@ -89,7 +93,8 @@ calc_distance <- function(price_df, reference_df) {
 #' @return Data.table with moving average values
 #' @export
 #' @examples
-#' ma20 <- calc_moving_average(prices, window = 20)
+#' data("sample_prices_weekly")
+#' ma20 <- calc_moving_average(sample_prices_weekly, window = 20)
 calc_moving_average <- function(data, window = 20) {
   # FIXED: Ensure data.table is preserved
   dt <- ensure_dt_copy(data)
@@ -117,7 +122,9 @@ calc_moving_average <- function(data, window = 20) {
 #' @return Data.table with Stochastic D values for each symbol
 #' @export
 #' @examples
+#' data("sample_prices_weekly")
 #' data(sample_prices_weekly)
+#' data("sample_prices_weekly")
 #' stoch_d <- calc_stochastic_d(sample_prices_weekly, k = 14, d = 3)
 #' head(stoch_d)
 calc_stochastic_d <- function(data, k = 14, d = 3) {
@@ -174,7 +181,8 @@ calc_stochastic_d <- function(data, k = 14, d = 3) {
 #' @return Data.table with RSI values (0-100 range)
 #' @export
 #' @examples
-#' rsi <- calc_rsi(prices, period = 14)
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, period = 14)
 #' overbought <- filter_above(rsi, 70)
 calc_rsi <- function(data, period = 14) {
   # Check TTR availability
@@ -211,7 +219,8 @@ calc_rsi <- function(data, period = 14) {
 #' @return Data.table with CCI values
 #' @export
 #' @examples
-#' cci <- calc_cci(prices, period = 20)
+#' data("sample_prices_weekly")
+#' cci <- calc_cci(sample_prices_weekly, period = 20)
 calc_cci <- function(data, period = 20) {
   # Calculate Commodity Channel Index (CCI) for each column in the DataFrame
   # using only closing prices (adapted from Python version).
@@ -435,11 +444,25 @@ calc_rolling_correlation <- function(data, benchmark_symbol = "SPY",
 
 
 
-
-
+#' Calculate Rolling Volatility
+#'
+#' @description
+#' Calculates rolling volatility using various methods including standard deviation,
+#' range-based, MAD, or absolute returns. Supports different lookback periods.
+#'
+#' @param data Data frame with Date column and price columns
+#' @param lookback Number of periods for rolling calculation (default: 20)
+#' @param method Volatility calculation method: "std", "range", "mad", or "abs_return"
+#'
+#' @return Data frame with Date column and volatility values for each symbol
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' # Standard deviation volatility
+#' vol <- calc_rolling_volatility(sample_prices_weekly, lookback = 20)
+#' # Range-based volatility
+#' vol_range <- calc_rolling_volatility(sample_prices_weekly, lookback = 20, method = "range")
 calc_rolling_volatility <- function(data, lookback = 20, method = "std") {
-  # Calculate rolling volatility using efficient vectorized operations
-
   # Validate inputs
   if (!method %in% c("std", "range", "mad", "abs_return")) {
     stop("method must be one of: std, range, mad, abs_return")
