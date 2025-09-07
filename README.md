@@ -1,4 +1,7 @@
-# PortfolioTesteR <img src="man/figures/logo.png" alt="PortfolioTesteR logo" width="140" align="right" />
+<p align="center">
+  <img src="man/figures/logo.png" width="120" alt="PortfolioTesteR logo">
+</p>
+<h1 align="center">PortfolioTesteR</h1>
 
 
 
