@@ -25,3 +25,5 @@ vignettes/*.md
 # Optional: build-time metadata
 Meta/
 
+/doc/
+/Meta/

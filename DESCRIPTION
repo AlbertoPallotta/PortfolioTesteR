@@ -1,15 +1,18 @@
 Package: PortfolioTesteR
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Test Investment Strategies with English-Like Code
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Alberto Pallotta
+Maintainer: Alberto Pallotta <pallottaalberto@gmail.com>
+Description: Tools to design, backtest, and analyze portfolio strategies using
+    simple, English-like function chains. Includes momentum, RSI, regime filters,
+    position limits, and multiple weighting schemes with plotting and summaries.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports: 
+Depends:
+    R (>= 3.5.0)
+Imports:
     data.table,
     graphics,
     quantmod,
@@ -18,8 +21,11 @@ Imports:
     TTR,
     utils,
     zoo
-Suggests: 
-    rvest
+Suggests:
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
 RoxygenNote: 7.3.2
 URL: https://github.com/alb3rtazzo/PortfolioTesteR
 BugReports: https://github.com/alb3rtazzo/PortfolioTesteR/issues
+
