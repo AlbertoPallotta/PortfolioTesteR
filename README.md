@@ -1,4 +1,7 @@
-# PortfolioTesteR
+# PortfolioTesteR <img src="man/figures/logo.png"
+  alt="PortfolioTesteR logo" width="140" align="right"
+  style="margin-left:12px; margin-bottom:8px;" />
+
 
 ## Test Investment Strategies with English-Like Code
 
@@ -65,7 +68,7 @@ plot(result)
 - `calc_rsi()` - Relative Strength Index
 - `calc_moving_average()` - Simple moving averages
 - `calc_stochastic_d()` - Stochastic oscillator
-- `calc_volatility()` - Historical volatility
+- `calc_rolling_volatility()` - Rolling historical volatility (std / range / MAD / abs-return)
 - `calc_distance()` - Distance between price series
 
 ### Stock Selection
