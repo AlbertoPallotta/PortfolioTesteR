@@ -1,6 +1,5 @@
-# PortfolioTesteR <img src="man/figures/logo.png"
-  alt="PortfolioTesteR logo" width="140" align="right"
-  style="margin-left:12px; margin-bottom:8px;" />
+# PortfolioTesteR <img src="man/figures/logo.png" alt="PortfolioTesteR logo" width="140" align="right" />
+
 
 
 ## Test Investment Strategies with English-Like Code
