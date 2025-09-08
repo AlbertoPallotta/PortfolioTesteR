@@ -7,15 +7,15 @@
 \format{
 A data.table with 18 rows and 2 columns:
 \describe{
-  \item{Symbol}{Character, stock ticker symbol}
-  \item{Sector}{Character, GICS sector classification}
+\item{Symbol}{Character, stock ticker symbol}
+\item{Sector}{Character, GICS sector classification}
 }
 }
 \source{
 S&P 500 constituent data
 }
 \usage{
-sample_sp500_sectors
+data(sample_sp500_sectors)
 }
 \description{
 Sector classifications for the stock symbols in the sample datasets.

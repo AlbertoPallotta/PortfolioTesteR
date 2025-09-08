@@ -19,6 +19,10 @@
 #' head(sample_prices_weekly)
 #' # Calculate momentum
 #' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' @usage data(sample_prices_weekly)
+#' @docType data
+#' @keywords datasets
+#' @name sample_prices_weekly
 "sample_prices_weekly"
 
 #' Sample Daily Stock Prices
@@ -42,6 +46,10 @@
 #' head(sample_prices_daily)
 #' # Get date range
 #' range(sample_prices_daily$Date)
+#' @usage data(sample_prices_daily)
+#' @docType data
+#' @keywords datasets
+#' @name sample_prices_daily
 "sample_prices_daily"
 
 #' S&P 500 Sector Mappings
@@ -61,4 +69,8 @@
 #' head(sample_sp500_sectors)
 #' # Count stocks per sector
 #' table(sample_sp500_sectors$Sector)
+#' @usage data(sample_sp500_sectors)
+#' @docType data
+#' @keywords datasets
+#' @name sample_sp500_sectors
 "sample_sp500_sectors"

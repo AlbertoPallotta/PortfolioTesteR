@@ -1977,9 +1977,6 @@ hrp_info <- function() {
   cat("  rp_weights <- weight_by_risk_parity(selected, returns, method = 'equal_risk')\n")
 }
 
-cat("[OK] Optimized HRP and Risk Parity functions loaded\n")
-cat("[OK] Run hrp_info() for usage details\n")
-
 
 
 

@@ -101,8 +101,8 @@ sql_adapter <- function(db_path, symbols, start_date = NULL, end_date = NULL,
   #library(RSQLite)
 
   # Connect to database
-  db <- dbConnect(SQLite(), db_path)
-  on.exit(dbDisconnect(db))
+  db <- RSQLite::dbConnect(RSQLite::SQLite(), db_path)
+  on.exit(RSQLite::dbDisconnect(db))
 
   # Initialize database if needed
   init_sql_db(db)
@@ -126,7 +126,7 @@ sql_adapter <- function(db_path, symbols, start_date = NULL, end_date = NULL,
   query <- sprintf("SELECT date, symbol, price FROM stocks WHERE symbol IN (%s) %s ORDER BY date, symbol",
                    symbols_str, date_filter)
 
-  data <- dbGetQuery(db, query)
+  data <- RSQLite::dbGetQuery(db, query)
 
   if (nrow(data) == 0) {
     stop("No data found for specified symbols and date range")
@@ -149,14 +149,14 @@ sql_adapter <- function(db_path, symbols, start_date = NULL, end_date = NULL,
 
 # Helper function to initialize SQL database
 init_sql_db <- function(db) {
-  dbExecute(db, "CREATE TABLE IF NOT EXISTS stocks (
+  RSQLite::dbExecute(db, "CREATE TABLE IF NOT EXISTS stocks (
     date DATE,
     symbol TEXT,
     price REAL,
     PRIMARY KEY (date, symbol)
   )")
 
-  dbExecute(db, "CREATE INDEX IF NOT EXISTS idx_symbol_date ON stocks(symbol, date)")
+  RSQLite::dbExecute(db, "CREATE INDEX IF NOT EXISTS idx_symbol_date ON stocks(symbol, date)")
 }
 
 # Helper function to update symbols in database
@@ -170,7 +170,7 @@ update_symbols_in_db <- function(db, symbols) {
 
   for (symbol in symbols) {
     # Check if symbol needs update
-    last_date <- dbGetQuery(db, sprintf("SELECT MAX(date) as last_date FROM stocks WHERE symbol = '%s'", symbol))$last_date
+    last_date <- RSQLite::dbGetQuery(db, sprintf("SELECT MAX(date) as last_date FROM stocks WHERE symbol = '%s'", symbol))$last_date
 
     if (is.na(last_date) || as.Date(last_date) < Sys.Date() - 1) {
       cat("Updating", symbol, "...\n")
@@ -178,18 +178,18 @@ update_symbols_in_db <- function(db, symbols) {
       tryCatch({
         from_date <- if(is.na(last_date)) "2014-01-01" else as.Date(last_date)
 
-        stock <- getSymbols(symbol, src='yahoo', from=from_date, auto.assign=FALSE, warnings=FALSE)
+        stock <- quantmod::getSymbols(symbol, src='yahoo', from=from_date, auto.assign=FALSE, warnings=FALSE)
 
         if (!is.null(stock)) {
           stock_data <- data.table(
             date = format(as.Date(index(stock)), "%Y-%m-%d"),
             symbol = symbol,
-            price = as.numeric(Cl(stock))
+            price = as.numeric(quantmod::Cl(stock))
           )
 
           # Insert data
           for (i in seq_len(nrow(stock_data))) {
-            dbExecute(db, "INSERT OR IGNORE INTO stocks (date, symbol, price) VALUES (?, ?, ?)",
+            RSQLite::dbExecute(db, "INSERT OR IGNORE INTO stocks (date, symbol, price) VALUES (?, ?, ?)",
                       params = list(stock_data$date[i], stock_data$symbol[i], stock_data$price[i]))
           }
         }
@@ -218,19 +218,26 @@ update_symbols_in_db <- function(db, symbols) {
 #' @return Data.table with Date column and one column per symbol
 #' @export
 #' @examples
-#' # Download tech stocks for 2023
-#' prices <- yahoo_adapter(
-#'   symbols = c("AAPL", "MSFT", "GOOGL"),
-#'   start_date = "2023-01-01",
-#'   end_date = "2023-12-31",
-#'   frequency = "weekly"
-#' )
+#' # Use included sample data
+#' data(sample_prices_weekly)
 #'
-#' # Build a quick momentum strategy
-#' momentum <- calc_momentum(prices, lookback = 12)
+#' # Build a quick momentum strategy with offline data
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 #' selected <- filter_top_n(momentum, n = 2)
 #' weights <- weight_equally(selected)
-#' result <- run_backtest(prices, weights)
+#' result <- run_backtest(sample_prices_weekly, weights, initial_capital = 100000)
+#'
+#' @examplesIf interactive()
+#' # Download tech stocks (requires internet, skipped on CRAN)
+#' if (requireNamespace("quantmod", quietly = TRUE)) {
+#'   prices <- yahoo_adapter(
+#'     symbols = c("AAPL", "MSFT", "GOOGL"),
+#'     start_date = "2023-01-01",
+#'     end_date = "2023-12-31",
+#'     frequency = "weekly"
+#'   )
+#'   momentum <- calc_momentum(prices, lookback = 12)
+#' }
 yahoo_adapter <- function(symbols, start_date, end_date, frequency = "daily") {
 
   if (!requireNamespace("quantmod", quietly = TRUE)) {
@@ -245,13 +252,13 @@ yahoo_adapter <- function(symbols, start_date, end_date, frequency = "daily") {
     cat("Downloading", symbol, "...\n")
 
     tryCatch({
-      stock <- getSymbols(symbol, src='yahoo', from=start_date, to=end_date, auto.assign=FALSE, warnings=FALSE)
+      stock <- quantmod::getSymbols(symbol, src='yahoo', from=start_date, to=end_date, auto.assign=FALSE, warnings=FALSE)
 
       if (!is.null(stock)) {
         symbol_data <- data.table(
           date = as.Date(index(stock)),
           symbol = symbol,
-          price = as.numeric(Cl(stock))
+          price = as.numeric(quantmod::Cl(stock))
         )
         all_data[[symbol]] <- symbol_data
       }
@@ -403,11 +410,11 @@ check_sql_symbols <- function(db_path, symbols = NULL, start_date = NULL, end_da
   }
 
  # library(RSQLite)
-  db <- dbConnect(SQLite(), db_path)
-  on.exit(dbDisconnect(db))
+  db <- RSQLite::dbConnect(RSQLite::SQLite(), db_path)
+  on.exit(RSQLite::dbDisconnect(db))
 
   # Get all available symbols
-  all_symbols <- dbGetQuery(db, "SELECT DISTINCT symbol FROM stocks ORDER BY symbol")$symbol
+  all_symbols <- RSQLite::dbGetQuery(db, "SELECT DISTINCT symbol FROM stocks ORDER BY symbol")$symbol
   cat("All symbols in database:", paste(all_symbols, collapse = ", "), "\n")
 
   if (!is.null(symbols)) {
@@ -427,7 +434,7 @@ check_sql_symbols <- function(db_path, symbols = NULL, start_date = NULL, end_da
       if (!is.null(start_date)) date_query <- paste(date_query, sprintf("AND date >= '%s'", start_date))
       if (!is.null(end_date)) date_query <- paste(date_query, sprintf("AND date <= '%s'", end_date))
 
-      result <- dbGetQuery(db, date_query)
+      result <- RSQLite::dbGetQuery(db, date_query)
       cat(sprintf("%s: %s to %s (%d records)\n", symbol, result$min_date, result$max_date, result$count))
     }
   }
@@ -558,8 +565,8 @@ sql_adapter_adjusted <- function(db_path, symbols, start_date = NULL, end_date =
   #library(RSQLite)
 
   # Connect to database
-  db <- dbConnect(SQLite(), db_path)
-  on.exit(dbDisconnect(db))
+  db <- RSQLite::dbConnect(RSQLite::SQLite(), db_path)
+  on.exit(RSQLite::dbDisconnect(db))
 
   # Auto-update if requested (would need modification for adjusted prices)
   if (auto_update) {
@@ -581,7 +588,7 @@ sql_adapter_adjusted <- function(db_path, symbols, start_date = NULL, end_date =
   # First check if adjusted column exists
   if(use_adjusted) {
     check_query <- "SELECT COUNT(*) as n FROM pragma_table_info('stocks') WHERE name = 'price_adjusted'"
-    has_adjusted <- dbGetQuery(db, check_query)$n > 0
+    has_adjusted <- RSQLite::dbGetQuery(db, check_query)$n > 0
 
     if(!has_adjusted) {
       warning("price_adjusted column not found. Using regular price column.")
@@ -594,7 +601,7 @@ sql_adapter_adjusted <- function(db_path, symbols, start_date = NULL, end_date =
   query <- sprintf("SELECT date, symbol, %s as price FROM stocks WHERE symbol IN (%s) %s ORDER BY date, symbol",
                    price_column, symbols_str, date_filter)
 
-  data <- dbGetQuery(db, query)
+  data <- RSQLite::dbGetQuery(db, query)
 
   if (nrow(data) == 0) {
     stop("No data found for specified symbols and date range")

@@ -113,7 +113,7 @@ calc_moving_average <- function(data, window = 20) {
 #' @description
 #' Calculates the Stochastic D indicator for momentum analysis.
 #' The %D line is the smoothed version of %K, commonly used for
-#' momentum signals in range [0,100].
+#' momentum signals in range 0-100.
 #'
 #' @param data Price data with Date column and symbol columns
 #' @param k Lookback period for stochastic K calculation

@@ -12,7 +12,7 @@ calc_momentum(data, lookback = 12)
 \item{lookback}{Number of periods for momentum calculation (default: 12)}
 }
 \value{
-Data.table with momentum values (0.1 = 10% increase)
+Data.table with momentum values (0.1 = 10\% increase)
 }
 \description{
 Calculates momentum as the percentage change in price over a specified

@@ -7,19 +7,19 @@
 \format{
 A data.table with 754 rows and 21 columns:
 \describe{
-  \item{Date}{Date object, trading date}
-  \item{AAPL}{Apple Inc. adjusted closing price}
-  \item{AMZN}{Amazon.com Inc. adjusted closing price}
-  \item{BA}{Boeing Co. adjusted closing price}
-  \item{BAC}{Bank of America Corp. adjusted closing price}
-  \item{...}{Additional stock symbols with adjusted closing prices}
+\item{Date}{Date object, trading date}
+\item{AAPL}{Apple Inc. adjusted closing price}
+\item{AMZN}{Amazon.com Inc. adjusted closing price}
+\item{BA}{Boeing Co. adjusted closing price}
+\item{BAC}{Bank of America Corp. adjusted closing price}
+\item{...}{Additional stock symbols with adjusted closing prices}
 }
 }
 \source{
 Yahoo Finance historical data, adjusted for splits and dividends
 }
 \usage{
-sample_prices_daily
+data(sample_prices_daily)
 }
 \description{
 Daily closing prices for 20 stocks from 2017-2019. Contains the same

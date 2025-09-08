@@ -10,7 +10,7 @@ calculate_annualized_return(result)
 \item{result}{Backtest result object}
 }
 \value{
-Annualized return as decimal (0.1 = 10%)
+Annualized return as decimal (0.1 = 10\%)
 }
 \description{
 Converts total return to annualized return based on time period.

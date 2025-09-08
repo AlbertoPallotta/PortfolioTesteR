@@ -14,14 +14,14 @@ calc_sector_breadth(
 \arguments{
 \item{condition_df}{Data frame with Date column and TRUE/FALSE values}
 
-\item{sector_mapping}{Data frame with Symbol and Sector columns}
+\item{sector_mapping}{Data frame with \code{Symbol} and \code{Sector} columns.}
 
 \item{min_stocks_per_sector}{Minimum stocks for valid sector breadth (default: 3)}
 
 \item{na_sector_action}{How to handle unmapped stocks: "exclude", "separate", or "market"}
 }
 \value{
-Data.table with Date and Breadth_[Sector] columns (0-100 scale)
+A \code{data.table} with \code{Date} and \code{Breadth_[Sector]} columns (0–100 scale)
 }
 \description{
 Measures participation within each sector separately, revealing which sectors

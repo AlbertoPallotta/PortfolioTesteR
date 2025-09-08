@@ -14,7 +14,7 @@ rank_within_sector(
 \arguments{
 \item{indicator_df}{Data frame with Date column and indicator values}
 
-\item{sector_mapping}{Data frame with Symbol and Sector columns}
+\item{sector_mapping}{Data frame with \code{Symbol} and \code{Sector} columns.}
 
 \item{method}{"percentile" (0-100), "rank" (1-N), or "z-score"}
 

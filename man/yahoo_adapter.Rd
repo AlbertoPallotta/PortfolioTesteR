@@ -24,17 +24,25 @@ No database required - perfect for quick analysis and experimentation.
 Get started with real data in under 5 minutes.
 }
 \examples{
-# Download tech stocks for 2023
-prices <- yahoo_adapter(
-  symbols = c("AAPL", "MSFT", "GOOGL"),
-  start_date = "2023-01-01",
-  end_date = "2023-12-31",
-  frequency = "weekly"
-)
+# Use included sample data
+data(sample_prices_weekly)
 
-# Build a quick momentum strategy
-momentum <- calc_momentum(prices, lookback = 12)
+# Build a quick momentum strategy with offline data
+momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 selected <- filter_top_n(momentum, n = 2)
 weights <- weight_equally(selected)
-result <- run_backtest(prices, weights)
+result <- run_backtest(sample_prices_weekly, weights, initial_capital = 100000)
+
+\dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+# Download tech stocks (requires internet, skipped on CRAN)
+if (requireNamespace("quantmod", quietly = TRUE)) {
+  prices <- yahoo_adapter(
+    symbols = c("AAPL", "MSFT", "GOOGL"),
+    start_date = "2023-01-01",
+    end_date = "2023-12-31",
+    frequency = "weekly"
+  )
+  momentum <- calc_momentum(prices, lookback = 12)
+}
+\dontshow{\}) # examplesIf}
 }

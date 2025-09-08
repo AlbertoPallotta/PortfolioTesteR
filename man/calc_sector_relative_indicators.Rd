@@ -16,7 +16,7 @@ calc_sector_relative_indicators(
 \arguments{
 \item{indicator_df}{Data frame with Date column and indicator values}
 
-\item{sector_mapping}{Data frame with Symbol and Sector columns}
+\item{sector_mapping}{Data frame with \code{Symbol} and \code{Sector} columns.}
 
 \item{method}{"difference" (absolute), "ratio" (relative), or "z-score"}
 

@@ -2,31 +2,40 @@ Package: PortfolioTesteR
 Type: Package
 Title: Test Investment Strategies with English-Like Code
 Version: 0.1.0
-Author: Alberto Pallotta
-Maintainer: Alberto Pallotta <pallottaalberto@gmail.com>
+Authors@R: 
+    person("Alberto", "Pallotta",
+           email = "pallottaalberto@gmail.com",
+           role = c("aut", "cre"))
 Description: Tools to design, backtest, and analyze portfolio strategies using
-    simple, English-like function chains. Includes momentum, RSI, regime filters,
-    position limits, and multiple weighting schemes with plotting and summaries.
+    simple, English-like function chains. Includes technical indicators such as
+    momentum via calc_momentum(), Relative Strength Index via calc_rsi(), and
+    moving averages; flexible stock selection (e.g., filter_top_n(), 
+    filter_by_percentile()); portfolio construction (e.g., weight_equally(),
+    weight_by_signal()); and a compact backtesting engine run_backtest() for
+    portfolio returns, drawdowns, and summary metrics. Example workflows run 
+    quickly and offline using included sample datasets.
 License: MIT + file LICENSE
-Encoding: UTF-8
-LazyData: true
+URL: https://github.com/alb3rtazzo/PortfolioTesteR
+BugReports: https://github.com/alb3rtazzo/PortfolioTesteR/issues
 Depends:
     R (>= 3.5.0)
 Imports:
     data.table,
     graphics,
-    quantmod,
-    RSQLite,
     stats,
     TTR,
     utils,
-    zoo,
-    rvest
+    zoo
 Suggests:
+    quantmod,
+    RSQLite,
+    rvest,
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-URL: https://github.com/alb3rtazzo/PortfolioTesteR
-BugReports: https://github.com/alb3rtazzo/PortfolioTesteR/issues
-
+Config/testthat/edition: 3
+ByteCompile: true

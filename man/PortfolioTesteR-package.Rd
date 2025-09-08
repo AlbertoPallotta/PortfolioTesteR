@@ -6,7 +6,9 @@
 \alias{PortfolioTesteR-package}
 \title{PortfolioTesteR: Test Investment Strategies with English-Like Code}
 \description{
-Tools to design, backtest, and analyze portfolio strategies using simple, English-like function chains. Includes momentum, RSI, regime filters, position limits, and multiple weighting schemes with plotting and summaries.
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
+Tools to design, backtest, and analyze portfolio strategies using simple, English-like function chains. Includes technical indicators such as momentum via calc_momentum(), Relative Strength Index via calc_rsi(), and moving averages; flexible stock selection (e.g., filter_top_n(), filter_by_percentile()); portfolio construction (e.g., weight_equally(), weight_by_signal()); and a compact backtesting engine run_backtest() for portfolio returns, drawdowns, and summary metrics. Example workflows run quickly and offline using included sample datasets.
 }
 \seealso{
 Useful links:
@@ -14,6 +16,10 @@ Useful links:
   \item \url{https://github.com/alb3rtazzo/PortfolioTesteR}
   \item Report bugs at \url{https://github.com/alb3rtazzo/PortfolioTesteR/issues}
 }
+
+}
+\author{
+\strong{Maintainer}: Alberto Pallotta \email{pallottaalberto@gmail.com}
 
 }
 \keyword{internal}

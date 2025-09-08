@@ -40,11 +40,13 @@ diversified portfolios that don't rely on unstable correlation matrix inversions
 }
 \details{
 The HRP algorithm:
-1. Calculate returns from input prices
-2. Compute covariance matrix from returns
-3. Cluster assets based on distance matrix
-4. Apply recursive bisection with inverse variance weighting
-5. Results in naturally diversified portfolio without matrix inversion
+\enumerate{
+\item Calculate returns from input prices
+\item Compute covariance matrix from returns
+\item Cluster assets based on distance matrix
+\item Apply recursive bisection with inverse variance weighting
+\item Results in naturally diversified portfolio without matrix inversion
+}
 
 The function accepts price data and calculates returns internally,
 matching the pattern of other library functions like calc_momentum().

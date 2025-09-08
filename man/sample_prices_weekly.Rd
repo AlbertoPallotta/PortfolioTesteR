@@ -7,19 +7,19 @@
 \format{
 A data.table with 158 rows and 21 columns:
 \describe{
-  \item{Date}{Date object, weekly closing date (typically Friday)}
-  \item{AAPL}{Apple Inc. adjusted closing price}
-  \item{AMZN}{Amazon.com Inc. adjusted closing price}
-  \item{BA}{Boeing Co. adjusted closing price}
-  \item{BAC}{Bank of America Corp. adjusted closing price}
-  \item{...}{Additional stock symbols with adjusted closing prices}
+\item{Date}{Date object, weekly closing date (typically Friday)}
+\item{AAPL}{Apple Inc. adjusted closing price}
+\item{AMZN}{Amazon.com Inc. adjusted closing price}
+\item{BA}{Boeing Co. adjusted closing price}
+\item{BAC}{Bank of America Corp. adjusted closing price}
+\item{...}{Additional stock symbols with adjusted closing prices}
 }
 }
 \source{
 Yahoo Finance historical data, adjusted for splits and dividends
 }
 \usage{
-sample_prices_weekly
+data(sample_prices_weekly)
 }
 \description{
 Weekly closing prices for 20 stocks from 2017-2019. Data includes

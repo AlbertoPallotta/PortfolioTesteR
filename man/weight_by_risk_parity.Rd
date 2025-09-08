@@ -34,12 +34,14 @@ market capitalization or arbitrary equal weights.
 }
 \details{
 Methods:
-- inverse_vol: Weight inversely to volatility (1/'). Lower volatility
-               stocks receive higher weights. Simple but effective.
-- equal_risk: Equal Risk Contribution (ERC). Each position contributes
-              equally to total portfolio risk. Uses iterative optimization.
-- max_div: Maximum Diversification Portfolio. Maximizes the ratio of
-           weighted average volatility to portfolio volatility.
+\itemize{
+\item inverse_vol: Weight inversely to volatility (1/'). Lower volatility
+stocks receive higher weights. Simple but effective.
+\item equal_risk: Equal Risk Contribution (ERC). Each position contributes
+equally to total portfolio risk. Uses iterative optimization.
+\item max_div: Maximum Diversification Portfolio. Maximizes the ratio of
+weighted average volatility to portfolio volatility.
+}
 
 The function accepts price data and calculates returns internally,
 ensuring consistency with other library functions. Daily prices are

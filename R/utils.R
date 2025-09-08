@@ -276,9 +276,7 @@ utils_info <- function() {
   cat("  run_strategy(...) - Complete strategy runner with natural syntax\n")
 }
 
-# Verify utils loaded
-cat("[OK] Utility functions loaded from utils.R\n")
-cat("[OK] Strategy helper functions included\n")
+
 
 
 

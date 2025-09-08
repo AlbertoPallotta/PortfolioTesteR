@@ -18,8 +18,8 @@ Data.table with Stochastic D values for each symbol
 }
 \description{
 Calculates the Stochastic D indicator for momentum analysis.
-The %D line is the smoothed version of %K, commonly used for
-momentum signals in range [0,100].
+The \%D line is the smoothed version of \%K, commonly used for
+momentum signals in range 0-100.
 }
 \examples{
 data("sample_prices_weekly")
