@@ -7,3 +7,4 @@
 - Documented datasets: `sample_prices_weekly`, `sample_prices_daily`, `sample_sp500_sectors`.
 - Fixed roxygen cross-references and data docs; improved DESCRIPTION.
 - Added R-hub v2 and win-builder checks; 0 errors / 0 warnings (one benign Windows time NOTE).
+

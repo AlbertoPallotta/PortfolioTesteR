@@ -169,21 +169,42 @@ analyze_performance <- function(backtest_result, daily_prices,
 ###############################################################################
 
 
-#' Calculate Daily Portfolio Values
+#' Calculate Daily Portfolio Values (internal helper)
 #'
-#' @description
-#' Tracks portfolio value daily between rebalance dates for accurate
-#' performance measurement. Handles position tracking through time.
+#' Tracks portfolio value on each trading day between rebalance dates by
+#' carrying forward the latest positions and combining them with daily prices
+#' and the strategy's cash at each rebalance.
 #'
-#' @param positions Position data from backtest
-#' data("sample_prices_weekly")
-#' @param daily_prices Daily price data
-#' @param strategy_dates Strategy rebalance dates
-#' @param initial_capital Starting capital
-#' @param cash_balances Cash positions over time
+#' @details
+#' This is a plumbing function used by higher-level workflows. It converts
+#' rebalance-frequency positions into a daily time series for analysis and
+#' plotting. It assumes `positions` contain holdings at rebalance dates and
+#' `daily_prices` provide a wide daily price table for the same symbols.
 #'
-#' @return List with daily values and dates
+#' @param positions Data frame/data.table of target holdings at each rebalance
+#'   date. Expected columns: `Date` plus one column per symbol with *shares*
+#'   (or target holdings) at that rebalance date.
+#' @param daily_prices Wide daily price table with `Date` and one column per
+#'   symbol containing daily close (or valuation) prices.
+#' @param strategy_dates Date vector of rebalance dates corresponding to rows
+#'   of `positions`.
+#' @param initial_capital Numeric starting capital for the backtest.
+#' @param cash_values Optional cash specification at each rebalance:
+#'   - a single numeric (constant cash),
+#'   - a numeric vector aligned to `strategy_dates`, or
+#'   - a two-column `Date`/`cash` table at rebalance dates.
+#'   If `NULL`, cash before the first rebalance equals `initial_capital`, then
+#'   remains the last known rebalance cash going forward.
+#'
+#' @return A list with elements such as:
+#'   - `dates`: daily `Date` vector within the strategy period,
+#'   - `portfolio_values`: numeric vector of total portfolio value by day,
+#'   - `positions_value`: numeric vector of mark-to-market positions value by day,
+#'   - `cash`: numeric vector of daily cash carried from rebalance cash.
+#'
+#' @seealso [run_backtest()], [plot.backtest_result()], [summary.backtest_result()]
 #' @keywords internal
+#' @noRd
 calculate_daily_values <- function(positions, daily_prices, strategy_dates, initial_capital, cash_values) {
   # Calculate portfolio value for each day based on positions
 
