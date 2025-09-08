@@ -3,5 +3,19 @@
 ^LICENSE\.md$
 ^doc$
 ^Meta$
+^cran-comments\.md$
+^\.github$
+^data-raw$              # raw data scripts (not shipped)
+^README\.Rmd$           # if your README is knitted from Rmd
+^README\.qmd$           # if you use Quarto
+^_quarto\.yml$          # Quarto config
+^_site$                 # Quarto render output
+^_freeze$               # Quarto cache
+^_pkgdown\.yml$         # pkgdown config (if any)
+^pkgdown$               # pkgdown cache dir (if any)
+^CRAN-RELEASE$          # created by devtools::release()
+^revdep$                # reverse-deps results, if you run them
+^\.vscode$              # editor folders
+^\.DS_Store$            # macOS cruft
 
 
