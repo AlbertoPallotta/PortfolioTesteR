@@ -1,5 +1,8 @@
 # PortfolioTesteR 0.1.1
 
+- Fix CRAN incoming NOTE: removed stale Rd page for internal helper `calculate_daily_values()`; function remains internal (`@noRd`).
+- No API changes. All examples/tests/vignettes run offline.
+
 # PortfolioTesteR 0.1.0 (2025-09-08)
 
 - Initial CRAN release.
@@ -9,4 +12,3 @@
 - Documented datasets: `sample_prices_weekly`, `sample_prices_daily`, `sample_sp500_sectors`.
 - Fixed roxygen cross-references and data docs; improved DESCRIPTION.
 - Added R-hub v2 and win-builder checks; 0 errors / 0 warnings (one benign Windows time NOTE).
-
