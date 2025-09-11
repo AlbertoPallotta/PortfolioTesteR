@@ -32,7 +32,7 @@ result <- run_backtest(sample_prices_weekly, weights)
 # Analyze performance
 \dontrun{
 # Would need daily prices for full analysis
-# perf <- analyze_performance(result, daily_prices)
-# plot(perf, type = "summary")
+perf <- analyze_performance(result, daily_prices)
+plot(perf, type = "summary")
 }
 }

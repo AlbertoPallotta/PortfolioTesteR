@@ -850,12 +850,15 @@ print.performance_analysis <- function(x, ...) {
 #' # Analyze performance
 #' \dontrun{
 #' # Would need daily prices for full analysis
-#' # perf <- analyze_performance(result, daily_prices)
-#' # plot(perf, type = "summary")
+#' perf <- analyze_performance(result, daily_prices)
+#' plot(perf, type = "summary")
 #' }
 plot.performance_analysis <- function(x, type = "summary", ...) {
-  # Create various plots for performance analysis
+  # Save and restore only mfrow
+  old_mfrow <- par("mfrow")
+  on.exit(par(mfrow = old_mfrow))
 
+  # Create various plots for performance analysis
   if (type == "summary") {
     # 4-panel summary plot
     par(mfrow = c(2, 2))
@@ -908,8 +911,6 @@ plot.performance_analysis <- function(x, type = "summary", ...) {
     }
     grid()
 
-    par(mfrow = c(1, 1))
-
   } else if (type == "returns") {
     # Return distribution plots
     par(mfrow = c(2, 2))
@@ -927,18 +928,16 @@ plot.performance_analysis <- function(x, type = "summary", ...) {
     # ACF
     acf(x$daily$returns, main = "Return Autocorrelation")
 
-    # Monthly returns
+    # Monthly returns - FIXED column name
     if (!is.null(x$periods$monthly)) {
-      barplot(x$periods$monthly$return * 100,
+      barplot(x$periods$monthly$ret * 100,  # Fixed: was 'return', now 'ret'
               names.arg = x$periods$monthly$year_month,
               las = 2, cex.names = 0.6,
               main = "Monthly Returns",
               ylab = "Return (%)",
-              col = ifelse(x$periods$monthly$return > 0, "darkgreen", "darkred"))
+              col = ifelse(x$periods$monthly$ret > 0, "darkgreen", "darkred"))
       abline(h = 0)
     }
-
-    par(mfrow = c(1, 1))
 
   } else if (type == "risk") {
     # Risk-focused plots
@@ -1007,8 +1006,6 @@ plot.performance_analysis <- function(x, type = "summary", ...) {
       abline(h = x$benchmark$beta, lty = 2)
       grid()
     }
-
-    par(mfrow = c(1, 1))
   }
 
   invisible(x)

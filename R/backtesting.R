@@ -591,8 +591,11 @@ summary.backtest_result <- function(object, ...) {
 #' result <- run_backtest(sample_prices_weekly, weights)
 #' plot(result)
 plot.backtest_result <- function(x, type = "performance", ...) {
-  # Plot backtest results
+  # Save and restore only mfrow
+  old_mfrow <- par("mfrow")
+  on.exit(par(mfrow = old_mfrow))
 
+  # Plot backtest results
   if (type == "performance") {
     # Equity curve
     par(mfrow = c(2, 1))
@@ -613,8 +616,6 @@ plot.backtest_result <- function(x, type = "performance", ...) {
     grid()
     abline(h = 0, lty = 2)
 
-    par(mfrow = c(1, 1))
-
   } else if (type == "positions") {
     # Position counts over time
     positions_held <- rowSums(x$positions[, -"Date"] > 0)
@@ -627,23 +628,19 @@ plot.backtest_result <- function(x, type = "performance", ...) {
   } else if (type == "weights") {
     # Weight distribution over time
     symbol_cols <- setdiff(names(x$weights), "Date")
-
     # Get top 5 by average weight
     avg_weights <- colMeans(x$weights[, symbol_cols, with = FALSE], na.rm = TRUE)
     top_symbols <- names(sort(avg_weights, decreasing = TRUE))[1:min(5, length(avg_weights))]
-
     # Plot weights
     plot(x$dates, rep(0, length(x$dates)), type = "n",
          ylim = c(0, 1),
          main = paste(x$name, "- Portfolio Weights"),
          xlab = "Date", ylab = "Weight")
-
     colors <- c("red", "blue", "green", "orange", "purple")
     for (i in seq_along(top_symbols)) {
       lines(x$dates, x$weights[[top_symbols[i]]],
             col = colors[i], lwd = 2)
     }
-
     legend("topright", legend = top_symbols,
            col = colors[1:length(top_symbols)], lwd = 2)
     grid()

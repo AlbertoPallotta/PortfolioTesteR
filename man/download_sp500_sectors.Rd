@@ -4,19 +4,14 @@
 \alias{download_sp500_sectors}
 \title{Download S&P 500 Sector Mappings from Wikipedia}
 \usage{
-download_sp500_sectors(save_csv = FALSE, save_rds = FALSE)
-}
-\arguments{
-\item{save_csv}{Logical, whether to save as CSV file (default: FALSE)}
-
-\item{save_rds}{Logical, whether to save as RDS file (default: FALSE)}
+download_sp500_sectors()
 }
 \value{
 Data.table with columns: Symbol, Security, Sector, SubIndustry, Industry
 }
 \description{
 Scrapes current S&P 500 constituent list with sector classifications
-from Wikipedia. Creates both CSV and RDS files for offline use.
+from Wikipedia and returns as a data.table.
 }
 \examples{
 \dontrun{

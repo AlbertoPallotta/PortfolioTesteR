@@ -2,10 +2,7 @@
 #'
 #' @description
 #' Scrapes current S&P 500 constituent list with sector classifications
-#' from Wikipedia. Creates both CSV and RDS files for offline use.
-#'
-#' @param save_csv Logical, whether to save as CSV file (default: FALSE)
-#' @param save_rds Logical, whether to save as RDS file (default: FALSE)
+#' from Wikipedia and returns as a data.table.
 #'
 #' @return Data.table with columns: Symbol, Security, Sector, SubIndustry, Industry
 #' @export
@@ -14,7 +11,7 @@
 #' # Download current sector mappings (requires internet)
 #' sectors <- download_sp500_sectors()
 #' }
-download_sp500_sectors <- function(save_csv = FALSE, save_rds = FALSE) {
+download_sp500_sectors <- function() {
   # Check if rvest is available
   if (!requireNamespace("rvest", quietly = TRUE)) {
     stop("Package 'rvest' needed. Install with: install.packages('rvest')")
@@ -23,10 +20,9 @@ download_sp500_sectors <- function(save_csv = FALSE, save_rds = FALSE) {
   url <- "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
   page <- rvest::read_html(url)
 
-  # Extract the main table
-  sp500_table <- page %>%
-    rvest::html_node("#constituents") %>%
-    rvest::html_table()
+  # Extract the main table - NO PIPES
+  sp500_node <- rvest::html_node(page, "#constituents")
+  sp500_table <- rvest::html_table(sp500_node)
 
   # Clean and structure
   sector_mapping <- data.table(
@@ -39,10 +35,6 @@ download_sp500_sectors <- function(save_csv = FALSE, save_rds = FALSE) {
   # Clean symbols
   sector_mapping[, Symbol := gsub("\\.", "-", Symbol)]
   sector_mapping[, Industry := gsub(" \\(.*\\)", "", SubIndustry)]
-
-  # Optional saves
-  if (save_csv) write.csv(sector_mapping, "sp500_sectors.csv", row.names = FALSE)
-  if (save_rds) saveRDS(sector_mapping, "sp500_sectors.rds")
 
   return(sector_mapping)
 }

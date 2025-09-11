@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Tools to design, backtest, and analyze portfolio strategies using simple, English-like function chains. Includes technical indicators such as momentum via calc_momentum(), Relative Strength Index via calc_rsi(), and moving averages; flexible stock selection (e.g., filter_top_n(), filter_by_percentile()); portfolio construction (e.g., weight_equally(), weight_by_signal()); and a compact backtesting engine run_backtest() for portfolio returns, drawdowns, and summary metrics. Example workflows run quickly and offline using included sample datasets.
+Design, backtest, and analyze portfolio strategies using simple, English-like function chains. Includes technical indicators, flexible stock selection, portfolio construction methods (equal weighting, signal weighting, inverse volatility, hierarchical risk parity), and a compact backtesting engine for portfolio returns, drawdowns, and summary metrics.
 }
 \seealso{
 Useful links:
