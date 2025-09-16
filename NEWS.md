@@ -24,3 +24,4 @@
 
 ## Compatibility
 - No breaking API changes; existing examples and vignettes continue to work.
+

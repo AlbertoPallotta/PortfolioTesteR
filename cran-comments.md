@@ -1,16 +1,22 @@
+# CRAN submission: PortfolioTesteR 0.1.1
+
 ## Test environments
 * Local Windows 10, R 4.2.1 — PASS
 * win-builder (R-devel) — PASS
-* R-hub v2 (GitHub Actions): windows (R-devel), macos (R-devel), ubuntu-release — PASS
+* R-hub v2 (GitHub Actions): Windows (R-devel), macOS (R-devel), Ubuntu (release) — PASS
 
 ## R CMD check results
-0 errors | 0 warnings | 1 note
+0 errors | 0 warnings | 0 notes
 
-* NOTE: "unable to verify current time" — known Windows timestamp check quirk (system clock), not package-specific.
+All examples/vignettes build successfully. Any Quarto console output seen locally does not affect checks.
 
 ## Resubmission (0.1.1)
-* Fix for previous NOTE “Documented arguments not in \usage”:
-  The internal helper `calculate_daily_values()` is not part of the user API and is documented with `@keywords internal` and `@noRd`. A stale Rd page existed from an earlier state and has now been removed. No public-facing changes.
+* Replaced all \dontrun{} with \donttest{} or @examplesIf(...); re-roxygenized docs.
+* Added @importFrom stats aggregate for `wf_stitch()`; NAMESPACE regenerated.
+* Fixed S3 docs for print methods (x, ... + aliases): param_grid_result, wf_optimization_result, backtest_result.
+* Removed DBI from examples; SQLite examples now guard with @examplesIf(requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")).
+* New optional APIs: run_param_grid(), metric_sharpe(), run_walk_forward(), wf_stitch(), wf_report().
 
-## Spelling NOTE justification
-CRAN’s spell check flagged the words “backtest”, “backtesting”, and “drawdowns” in DESCRIPTION. These are established terms in quantitative finance and portfolio management used widely in academic and practitioner literature, and are appropriate for the target audience. We prefer to keep them as-is.
+## Additional notes
+* roxygen2 re-run; NAMESPACE and Rd are up to date.
+
