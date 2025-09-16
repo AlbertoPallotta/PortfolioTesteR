@@ -21,9 +21,9 @@ S3 plot method for visualizing backtest performance.
 }
 \examples{
 data("sample_prices_weekly")
-momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-selected <- filter_top_n(momentum, n = 10)
-weights <- weight_equally(selected)
-result <- run_backtest(sample_prices_weekly, weights)
-plot(result)
+mom <- calc_momentum(sample_prices_weekly, lookback = 12)
+sel <- filter_top_n(mom, n = 10)
+W   <- weight_equally(sel)
+res <- run_backtest(sample_prices_weekly, W)
+if (interactive()) plot(res, type = "performance")
 }

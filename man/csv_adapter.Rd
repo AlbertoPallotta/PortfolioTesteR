@@ -34,10 +34,21 @@ Reads stock price data from CSV files with flexible column naming.
 Automatically standardizes to library format.
 }
 \examples{
-\dontrun{
-# Load from CSV with custom columns
-prices <- csv_adapter("data.csv",
-                     date_col = "Date",
-                     price_col = "Close")
-}
+# Create a temporary tidy CSV from included weekly sample data (offline, fast)
+data("sample_prices_weekly")
+PW <- as.data.frame(sample_prices_weekly)
+syms <- setdiff(names(PW), "Date")[1:2]
+
+stk  <- stack(PW[1:10, syms])
+tidy <- data.frame(
+  Date   = rep(PW$Date[1:10], times = length(syms)),
+  Symbol = stk$ind,
+  Price  = stk$values
+)
+
+tmp <- tempfile(fileext = ".csv")
+write.csv(tidy, tmp, row.names = FALSE)
+prices <- csv_adapter(tmp)
+head(prices)
+unlink(tmp)
 }

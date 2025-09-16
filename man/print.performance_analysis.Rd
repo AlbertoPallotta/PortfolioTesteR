@@ -20,16 +20,15 @@ risk-adjusted returns, drawdown statistics, and benchmark comparison.
 }
 \examples{
 data("sample_prices_weekly")
-# Create a simple backtest result first
-momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-selected <- filter_top_n(momentum, n = 10)
-weights <- weight_equally(selected)
-result <- run_backtest(sample_prices_weekly, weights)
-
-# Analyze performance
-\dontrun{
-# Would need daily prices for full analysis
-# perf <- analyze_performance(result, daily_prices)
-# print(perf)  # Or just: perf
-}
+data("sample_prices_daily")
+syms_all <- intersect(names(sample_prices_weekly)[-1], names(sample_prices_daily)[-1])
+syms <- syms_all[seq_len(min(3L, length(syms_all)))]
+P <- sample_prices_weekly[, c("Date", syms), with = FALSE]
+D <- sample_prices_daily[,  c("Date", syms), with = FALSE]
+mom <- calc_momentum(P, lookback = 12)
+sel <- filter_top_n(mom, n = 3)
+W   <- weight_equally(sel)
+res <- run_backtest(P, W)
+perf <- analyze_performance(res, D, benchmark_symbol = syms[1])
+print(perf)  # or just: perf
 }

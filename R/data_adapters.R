@@ -66,29 +66,30 @@ standardize_data_format <- function(data, date_col = "date", symbol_col = "symbo
   return(wide_data)
 }
 
-#
 #' Load Price Data from SQL Database
 #'
 #' @description
 #' Loads stock price data from SQLite database with automatic frequency conversion.
-#' Supports daily, weekly, and monthly frequencies with auto-update capability.
 #'
 #' @param db_path Path to SQLite database file
 #' @param symbols Character vector of stock symbols to load
-#' @param start_date Start date (YYYY-MM-DD format) or NULL for all
-#' @param end_date End date (YYYY-MM-DD format) or NULL for all
+#' @param start_date Start date (YYYY-MM-DD) or NULL
+#' @param end_date End date (YYYY-MM-DD) or NULL
 #' @param auto_update Auto-update database before loading (default: TRUE)
 #' @param frequency "daily", "weekly", or "monthly" (default: "daily")
 #'
-#' @return Data.table with Date column and one column per symbol
+#' @return data.table with Date column and one column per symbol
 #' @export
-#' @examples
-#' \dontrun{
-#' # Load weekly data for specific symbols
-#' prices <- sql_adapter("sp500.db", c("AAPL", "MSFT"),
-#'                      start_date = "2020-01-01",
-#'                      end_date = "2021-01-01",
-#'                      frequency = "weekly")
+#' @examplesIf requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")
+#' \donttest{
+#' prices <- sql_adapter(
+#'   db_path   = "sp500.db",
+#'   symbols   = c("AAPL", "MSFT"),
+#'   start_date = "2020-01-01",
+#'   end_date   = "2020-12-31",
+#'   frequency  = "weekly"
+#' )
+#' head(prices)
 #' }
 sql_adapter <- function(db_path, symbols, start_date = NULL, end_date = NULL,
                         auto_update = TRUE, frequency = "daily") {
@@ -305,12 +306,23 @@ yahoo_adapter <- function(symbols, start_date, end_date, frequency = "daily") {
 #' @return Data.table with Date column and price columns
 #' @export
 #' @examples
-#' \dontrun{
-#' # Load from CSV with custom columns
-#' prices <- csv_adapter("data.csv",
-#'                      date_col = "Date",
-#'                      price_col = "Close")
-#' }
+#' # Create a temporary tidy CSV from included weekly sample data (offline, fast)
+#' data("sample_prices_weekly")
+#' PW <- as.data.frame(sample_prices_weekly)
+#' syms <- setdiff(names(PW), "Date")[1:2]
+#'
+#' stk  <- stack(PW[1:10, syms])
+#' tidy <- data.frame(
+#'   Date   = rep(PW$Date[1:10], times = length(syms)),
+#'   Symbol = stk$ind,
+#'   Price  = stk$values
+#' )
+#'
+#' tmp <- tempfile(fileext = ".csv")
+#' write.csv(tidy, tmp, row.names = FALSE)
+#' prices <- csv_adapter(tmp)
+#' head(prices)
+#' unlink(tmp)
 csv_adapter <- function(file_path, date_col = "Date", symbol_col = "Symbol", price_col = "Price", frequency = "daily", symbol_order = NULL) {
 
   if (!file.exists(file_path)) {
@@ -531,27 +543,28 @@ convert_to_nweeks <- function(data, n = 1, method = "last") {
 #' Load Adjusted Price Data from SQL Database
 #'
 #' @description
-#' Loads adjusted stock prices (for splits/dividends) from SQLite database.
-#' Handles missing adjusted prices gracefully with warnings.
+#' Loads adjusted stock prices (for splits/dividends) from SQLite.
 #'
 #' @param db_path Path to SQLite database file
 #' @param symbols Character vector of stock symbols to load
-#' @param start_date Start date (YYYY-MM-DD format) or NULL
-#' @param end_date End date (YYYY-MM-DD format) or NULL
-#' @param auto_update Auto-update database (default: FALSE for adjusted)
+#' @param start_date Start date (YYYY-MM-DD) or NULL
+#' @param end_date End date (YYYY-MM-DD) or NULL
+#' @param auto_update Auto-update database (default: FALSE)
 #' @param frequency "daily", "weekly", or "monthly" (default: "daily")
 #' @param use_adjusted Use adjusted prices if available (default: TRUE)
 #'
-#' @return Data.table with Date column and adjusted prices per symbol
+#' @return data.table with Date column and adjusted prices per symbol
 #' @export
-#' @examples
-#' \dontrun{
-#' # Load monthly adjusted prices
-#' prices <- sql_adapter_adjusted("sp500.db",
-#'                               c("AAPL", "MSFT", "GOOGL"),
-#'                               start_date = "2020-01-01",
-#'                               end_date = "2021-01-01",
-#'                               frequency = "monthly")
+#' @examplesIf requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")
+#' \donttest{
+#' prices <- sql_adapter_adjusted(
+#'   db_path   = "sp500.db",
+#'   symbols   = c("AAPL", "MSFT"),
+#'   start_date = "2020-01-01",
+#'   end_date   = "2020-12-31",
+#'   frequency  = "monthly"
+#' )
+#' head(prices)
 #' }
 sql_adapter_adjusted <- function(db_path, symbols, start_date = NULL, end_date = NULL,
                                  auto_update = FALSE, frequency = "daily",
@@ -645,15 +658,18 @@ sql_adapter_adjusted <- function(db_path, symbols, start_date = NULL, end_date =
 #' @param frequency Data frequency (default: "weekly")
 #' @param use_adjusted Use adjusted prices (default: TRUE)
 #'
-#' @return Data.table with all symbols properly loaded
+#' @return data.table with all symbols properly loaded
 #' @export
-#' @examples
-#' \dontrun{
-#' # Load stocks and VIX together
-#' data <- load_mixed_symbols("sp500.db",
-#'                           c("AAPL", "MSFT", "VIX"),
-#'                           start_date = "2020-01-01",
-#'                           end_date = "2021-01-01")
+#' @examplesIf requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")
+#' \donttest{
+#' mixed <- load_mixed_symbols(
+#'   db_path  = "sp500.db",
+#'   symbols  = c("AAPL", "MSFT", "VIX"),
+#'   start_date = "2020-01-01",
+#'   end_date   = "2020-12-31",
+#'   frequency  = "weekly"
+#' )
+#' head(mixed)
 #' }
 load_mixed_symbols <- function(db_path, symbols, start_date, end_date,
                                frequency = "weekly", use_adjusted = TRUE) {

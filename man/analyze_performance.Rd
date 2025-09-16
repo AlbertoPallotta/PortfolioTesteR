@@ -32,21 +32,26 @@ enhanced accuracy. Provides risk-adjusted returns, drawdown analysis,
 and benchmark comparison even when strategy trades at lower frequency.
 }
 \examples{
-# Load sample data
 data("sample_prices_weekly")
 data("sample_prices_daily")
 
-# Run a backtest first
-momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-selected <- filter_top_n(momentum, n = 10)
-weights <- weight_equally(selected)
-result <- run_backtest(sample_prices_weekly, weights)
+# Use overlapping symbols; cap to 3
+syms_all <- intersect(names(sample_prices_weekly)[-1], names(sample_prices_daily)[-1])
+stopifnot(length(syms_all) >= 1)
+syms <- syms_all[seq_len(min(3L, length(syms_all)))]
 
-# Analyze performance with daily data
-\dontrun{
-perf <- analyze_performance(result, sample_prices_daily,
-                          benchmark_symbol = "SPY")
+# Subset weekly (strategy) and daily (monitoring) to the same symbols
+P <- sample_prices_weekly[, c("Date", syms), with = FALSE]
+D <- sample_prices_daily[,  c("Date", syms), with = FALSE]
+
+# Simple end-to-end example
+mom <- calc_momentum(P, lookback = 12)
+sel <- filter_top_n(mom, n = 3)
+W   <- weight_equally(sel)
+res <- run_backtest(P, W)
+
+# Pick a benchmark that is guaranteed to exist in D
+perf <- analyze_performance(res, D, benchmark_symbol = syms[1])
 print(perf)
-plot(perf)
-}
+summary(perf)
 }

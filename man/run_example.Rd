@@ -2,28 +2,26 @@
 % Please edit documentation in R/examples_helpers.R
 \name{run_example}
 \alias{run_example}
-\title{Run an example script}
+\title{Run an Example Script}
 \usage{
 run_example(example_name, echo = TRUE)
 }
 \arguments{
-\item{example_name}{Character string with the example filename}
+\item{example_name}{Character scalar with the example filename (e.g. \code{"basic.R"}).}
 
-\item{echo}{Logical, whether to print the code as it runs (default TRUE)}
+\item{echo}{Logical; print code as it runs (default \code{TRUE}).}
 }
 \value{
-NULL (invisibly), runs the example for its side effects
+Invisibly returns \code{NULL}. Runs the example for its side effects.
 }
 \description{
-Executes an example script from the PortfolioTesteR package.
-Use list_examples() to see available examples.
+Executes an example script bundled in the package \verb{inst/examples/} folder.
 }
 \examples{
-\dontrun{
-# List available examples
-list_examples()
-
-# Run the basic momentum example
-run_example("example_momentum_basic.R")
+\dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\donttest{
+# Example (requires a real file under inst/examples):
+# run_example("basic.R")
 }
+\dontshow{\}) # examplesIf}
 }

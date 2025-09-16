@@ -14,8 +14,10 @@ Scrapes current S&P 500 constituent list with sector classifications
 from Wikipedia and returns as a data.table.
 }
 \examples{
-\dontrun{
-# Download current sector mappings (requires internet)
+\dontshow{if ((requireNamespace("rvest", quietly = TRUE))) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\donttest{
 sectors <- download_sp500_sectors()
+head(sectors)
 }
+\dontshow{\}) # examplesIf}
 }

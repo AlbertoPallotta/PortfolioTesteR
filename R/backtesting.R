@@ -461,11 +461,11 @@ validate_backtest_inputs <- function(prices, weights, initial_capital) {
 #' @export
 #' @examples
 #' data("sample_prices_weekly")
-#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-#' selected <- filter_top_n(momentum, n = 10)
-#' weights <- weight_equally(selected)
-#' result <- run_backtest(sample_prices_weekly, weights)
-#' print(result)
+#' mom <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' sel <- filter_top_n(mom, n = 10)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(sample_prices_weekly, W)
+#' print(res)
 print.backtest_result <- function(x, ...) {
   cat("Backtest Result: ", x$name, "\n")
   cat("=====================================\n")
@@ -585,11 +585,11 @@ summary.backtest_result <- function(object, ...) {
 #' @export
 #' @examples
 #' data("sample_prices_weekly")
-#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-#' selected <- filter_top_n(momentum, n = 10)
-#' weights <- weight_equally(selected)
-#' result <- run_backtest(sample_prices_weekly, weights)
-#' plot(result)
+#' mom <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' sel <- filter_top_n(mom, n = 10)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(sample_prices_weekly, W)
+#' if (interactive()) plot(res, type = "performance")
 plot.backtest_result <- function(x, type = "performance", ...) {
   # Save and restore only mfrow
   old_mfrow <- par("mfrow")

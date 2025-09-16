@@ -6,10 +6,10 @@
 #'
 #' @return Data.table with columns: Symbol, Security, Sector, SubIndustry, Industry
 #' @export
-#' @examples
-#' \dontrun{
-#' # Download current sector mappings (requires internet)
+#' @examplesIf (requireNamespace("rvest", quietly = TRUE))
+#' \donttest{
 #' sectors <- download_sp500_sectors()
+#' head(sectors)
 #' }
 download_sp500_sectors <- function() {
   # Check if rvest is available

@@ -27,23 +27,28 @@
 #' @return performance_analysis object with metrics and daily tracking
 #' @export
 #' @examples
-#' # Load sample data
 #' data("sample_prices_weekly")
 #' data("sample_prices_daily")
 #'
-#' # Run a backtest first
-#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-#' selected <- filter_top_n(momentum, n = 10)
-#' weights <- weight_equally(selected)
-#' result <- run_backtest(sample_prices_weekly, weights)
+#' # Use overlapping symbols; cap to 3
+#' syms_all <- intersect(names(sample_prices_weekly)[-1], names(sample_prices_daily)[-1])
+#' stopifnot(length(syms_all) >= 1)
+#' syms <- syms_all[seq_len(min(3L, length(syms_all)))]
 #'
-#' # Analyze performance with daily data
-#' \dontrun{
-#' perf <- analyze_performance(result, sample_prices_daily,
-#'                           benchmark_symbol = "SPY")
+#' # Subset weekly (strategy) and daily (monitoring) to the same symbols
+#' P <- sample_prices_weekly[, c("Date", syms), with = FALSE]
+#' D <- sample_prices_daily[,  c("Date", syms), with = FALSE]
+#'
+#' # Simple end-to-end example
+#' mom <- calc_momentum(P, lookback = 12)
+#' sel <- filter_top_n(mom, n = 3)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(P, W)
+#'
+#' # Pick a benchmark that is guaranteed to exist in D
+#' perf <- analyze_performance(res, D, benchmark_symbol = syms[1])
 #' print(perf)
-#' plot(perf)
-#' }
+#' summary(perf)
 analyze_performance <- function(backtest_result, daily_prices,
                                 benchmark_symbol = "SPY",
                                 rf_rate = 0,
@@ -596,10 +601,11 @@ calculate_risk_metrics <- function(returns, values, confidence_level = 0.95) {
 #' @examples
 #' data("sample_prices_weekly")
 #' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-#' selected <- filter_top_n(momentum, n = 10)
-#' weights <- weight_equally(selected)
-#' result <- run_backtest(sample_prices_weekly, weights)
-#' dd_series <- calculate_drawdown_series(result$portfolio_value)
+#' sel <- filter_top_n(momentum, n = 10)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(sample_prices_weekly, W)
+#' dd_series <- calculate_drawdown_series(res$portfolio_values)
+#' dd_stats  <- analyze_drawdowns(dd_series, res$returns)
 calculate_drawdown_series <- function(values) {
   cummax_values <- cummax(values)
   drawdowns <- (values - cummax_values) / cummax_values
@@ -782,18 +788,17 @@ validate_performance_inputs <- function(backtest_result, daily_prices, benchmark
 #' @export
 #' @examples
 #' data("sample_prices_weekly")
-#' # Create a simple backtest result first
-#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-#' selected <- filter_top_n(momentum, n = 10)
-#' weights <- weight_equally(selected)
-#' result <- run_backtest(sample_prices_weekly, weights)
-#'
-#' # Analyze performance
-#' \dontrun{
-#' # Would need daily prices for full analysis
-#' # perf <- analyze_performance(result, daily_prices)
-#' # print(perf)  # Or just: perf
-#' }
+#' data("sample_prices_daily")
+#' syms_all <- intersect(names(sample_prices_weekly)[-1], names(sample_prices_daily)[-1])
+#' syms <- syms_all[seq_len(min(3L, length(syms_all)))]
+#' P <- sample_prices_weekly[, c("Date", syms), with = FALSE]
+#' D <- sample_prices_daily[,  c("Date", syms), with = FALSE]
+#' mom <- calc_momentum(P, lookback = 12)
+#' sel <- filter_top_n(mom, n = 3)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(P, W)
+#' perf <- analyze_performance(res, D, benchmark_symbol = syms[1])
+#' print(perf)  # or just: perf
 print.performance_analysis <- function(x, ...) {
   cat("Performance Analysis:", x$strategy_name, "\n")
   cat("=========================================\n")
@@ -841,17 +846,18 @@ print.performance_analysis <- function(x, ...) {
 #' @export
 #' @examples
 #' data("sample_prices_weekly")
-#' # Create a simple backtest result first
-#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-#' selected <- filter_top_n(momentum, n = 10)
-#' weights <- weight_equally(selected)
-#' result <- run_backtest(sample_prices_weekly, weights)
-#'
-#' # Analyze performance
-#' \dontrun{
-#' # Would need daily prices for full analysis
-#' perf <- analyze_performance(result, daily_prices)
-#' plot(perf, type = "summary")
+#' data("sample_prices_daily")
+#' syms_all <- intersect(names(sample_prices_weekly)[-1], names(sample_prices_daily)[-1])
+#' syms <- syms_all[seq_len(min(3L, length(syms_all)))]
+#' P <- sample_prices_weekly[, c("Date", syms), with = FALSE]
+#' D <- sample_prices_daily[,  c("Date", syms), with = FALSE]
+#' mom <- calc_momentum(P, lookback = 12)
+#' sel <- filter_top_n(mom, n = 3)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(P, W)
+#' perf <- analyze_performance(res, D, benchmark_symbol = syms[1])
+#' if (interactive()) {
+#'   plot(perf, type = "summary")
 #' }
 plot.performance_analysis <- function(x, type = "summary", ...) {
   # Save and restore only mfrow

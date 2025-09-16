@@ -30,25 +30,21 @@ list_examples <- function() {
   invisible(examples)
 }
 
-#' Run an example script
+#' Run an Example Script
 #'
 #' @description
-#' Executes an example script from the PortfolioTesteR package.
-#' Use list_examples() to see available examples.
+#' Executes an example script bundled in the package `inst/examples/` folder.
 #'
-#' @param example_name Character string with the example filename
-#' @param echo Logical, whether to print the code as it runs (default TRUE)
+#' @param example_name Character scalar with the example filename (e.g. `"basic.R"`).
+#' @param echo Logical; print code as it runs (default `TRUE`).
 #'
-#' @return NULL (invisibly), runs the example for its side effects
+#' @return Invisibly returns `NULL`. Runs the example for its side effects.
 #' @export
 #'
-#' @examples
-#' \dontrun{
-#' # List available examples
-#' list_examples()
-#'
-#' # Run the basic momentum example
-#' run_example("example_momentum_basic.R")
+#' @examplesIf interactive()
+#' \donttest{
+#' # Example (requires a real file under inst/examples):
+#' # run_example("basic.R")
 #' }
 run_example <- function(example_name, echo = TRUE) {
   example_path <- system.file("examples", example_name, package = "PortfolioTesteR")

@@ -444,3 +444,150 @@ invert_signal <- function(signal_df) {
   return(dt)
 }
 
+
+# --- tiny coalesce helpers (used by wf_report/print) -------------------------
+.pt_coalesce <- function(x, default) {
+  if (is.null(x) || (length(x) == 1 && is.na(x))) default else x
+}
+.pt_null_coalesce <- function(x, default) .pt_coalesce(x, default)
+
+# --- frequency detection (shared by metric_sharpe, reports, etc.) ------------
+# Returns: 252 (daily), 52 (weekly), 12 (monthly), 4 (quarterly)
+.pt_detect_frequency <- function(dates) {
+  if (length(dates) < 2) return(252)
+  d <- as.Date(dates)
+  diffs <- as.numeric(diff(sort(d)))
+  med   <- suppressWarnings(median(diffs, na.rm = TRUE))
+  if (!is.finite(med)) return(252)
+
+  if (med <= 1.5) return(252)                    # daily
+  if (med >= 6   && med <= 8)  return(52)        # weekly
+  if (med >= 28  && med <= 32) return(12)        # monthly
+  if (med >= 85  && med <= 95) return(4)         # quarterly
+
+  span <- as.numeric(max(d) - min(d))
+  if (is.finite(span) && span > 0) {
+    ppy <- round(length(d) * 365.25 / span)
+    if (ppy > 100) return(252)
+    if (ppy >  40) return(52)
+    if (ppy >   8) return(12)
+    return(4)
+  }
+  252
+}
+
+# --- forbid cadence/timeframe knobs in param grids (optimization + WF) -------
+.pt_check_grid_params <- function(grid, context = "optimization") {
+  # Block structural fields + cadence/timeframe synonyms
+  forbidden <- c(
+    # structural / reserved
+    "date","prices","returns","weights",
+    # cadence / timeframe
+    "rebalance","rebalance_period","rebalance_freq","rebalance_by",
+    "rebalance_every","cadence","timeframe","ta_timeframe",
+    "trade_freq","trade_period","frequency","rebal_weeks"
+  )
+  nm  <- tolower(names(grid))
+  bad <- intersect(nm, forbidden)
+  if (length(bad)) {
+    stop(sprintf(
+      "Grid contains forbidden parameter names for %s: %s",
+      context, paste(bad, collapse = ", ")
+    ), call. = FALSE)
+  }
+}
+# --- Robust weights validator: class-preserving, date-safe, diagnostic-rich
+.pt_validate_weights <- function(prices, weights, context = "weights", allow_sparse = TRUE) {
+  # Work internally as base data.frames
+  P <- as.data.frame(prices,  check.names = FALSE, stringsAsFactors = FALSE)
+  W <- as.data.frame(weights, check.names = FALSE, stringsAsFactors = FALSE)
+
+  if (!"Date" %in% names(P)) stop("prices must have a 'Date' column", call. = FALSE)
+  if (!"Date" %in% names(W)) stop(sprintf("[%s] weights must have a 'Date' column", context), call. = FALSE)
+
+  # 1) Normalize Date
+  to_date <- function(x) {
+    if (inherits(x, "Date"))   return(x)
+    if (inherits(x, "POSIXt")) return(as.Date(x))
+    if (is.numeric(x))         return(as.Date(x, origin = "1970-01-01"))
+    as.Date(x)
+  }
+  P$Date <- to_date(P$Date)
+  W$Date <- to_date(W$Date)
+
+  # Collapse duplicate dates in weights (keep last)
+  if (anyDuplicated(W$Date)) {
+    W <- W[order(W$Date), , drop = FALSE]
+    W <- W[!duplicated(W$Date, fromLast = TRUE), , drop = FALSE]
+    warning(sprintf("[%s] Duplicate dates in weights; keeping last per date.", context), call. = FALSE)
+  }
+
+  # 2) Columns: drop junk, align to prices
+  asset_p <- setdiff(names(P), "Date")
+  asset_w <- setdiff(names(W), "Date")
+
+  extra <- setdiff(asset_w, asset_p)
+  if (length(extra)) {
+    warning(sprintf("[%s] Dropping extra non-asset columns: %s",
+                    context, paste(extra, collapse = ", ")), call. = FALSE)
+    asset_w <- intersect(asset_w, asset_p)
+    W <- W[, c("Date", asset_w), drop = FALSE]
+  }
+  if (!length(asset_w)) {
+    warning(sprintf("[%s] No matching asset columns; returning all-zero weights.", context), call. = FALSE)
+    out_df <- data.frame(Date = P$Date, check.names = FALSE)
+    for (nm in asset_p) out_df[[nm]] <- 0
+    # Return as data.table if available (so run_backtest’s with=FALSE works)
+    if (requireNamespace("data.table", quietly = TRUE)) {
+      return(data.table::as.data.table(out_df))
+    } else {
+      return(out_df)
+    }
+  }
+
+  common_assets <- intersect(asset_p, asset_w)
+  W <- W[, c("Date", common_assets), drop = FALSE]
+
+  # 3) Date alignment + diagnostics
+  idx <- match(P$Date, W$Date)
+  present <- !is.na(idx)
+  match_rate <- mean(present)
+
+  if (!all(present) && !allow_sparse) {
+    stop(sprintf("[%s] weights missing %d/%d required dates (allow_sparse=FALSE).",
+                 context, sum(!present), length(idx)), call. = FALSE)
+  }
+  if (match_rate < 0.99) {
+    warning(sprintf("[%s] Only %.1f%% of dates matched; non-matches set to 0. Check Date class/timezone.",
+                    context, 100 * match_rate), call. = FALSE)
+  }
+
+  # Build aligned output (zeros by default)
+  out_df <- data.frame(Date = P$Date, check.names = FALSE)
+  for (nm in asset_p) out_df[[nm]] <- 0
+  if (any(present)) for (nm in common_assets) out_df[present, nm] <- W[idx[present], nm]
+
+  # 4) Coerce numeric, NA->0, trim tiny noise
+  for (nm in asset_p) {
+    out_df[[nm]] <- suppressWarnings(as.numeric(out_df[[nm]]))
+    if (anyNA(out_df[[nm]])) {
+      na_n <- sum(is.na(out_df[[nm]]))
+      warning(sprintf("[%s] NAs in weights for %s (%d); replacing with 0.", context, nm, na_n), call. = FALSE)
+      out_df[[nm]][is.na(out_df[[nm]])] <- 0
+    }
+    out_df[[nm]][abs(out_df[[nm]]) < 1e-14] <- 0
+  }
+
+  # 5) Degeneracy hint
+  tradable <- sum(rowSums(abs(out_df[, asset_p, drop = FALSE])) > 0)
+  if (tradable < 2L) {
+    warning(sprintf("[%s] Weights are effectively all-zero on almost all dates after alignment (%d/%d tradable rows). Check lookback/selection/date alignment.",
+                    context, tradable, nrow(out_df)), call. = FALSE)
+  }
+
+  # Return as data.table if available (keeps backtester happy)
+  if (requireNamespace("data.table", quietly = TRUE)) {
+    out_df <- data.table::as.data.table(out_df)
+  }
+  out_df
+}

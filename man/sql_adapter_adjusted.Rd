@@ -19,30 +19,33 @@ sql_adapter_adjusted(
 
 \item{symbols}{Character vector of stock symbols to load}
 
-\item{start_date}{Start date (YYYY-MM-DD format) or NULL}
+\item{start_date}{Start date (YYYY-MM-DD) or NULL}
 
-\item{end_date}{End date (YYYY-MM-DD format) or NULL}
+\item{end_date}{End date (YYYY-MM-DD) or NULL}
 
-\item{auto_update}{Auto-update database (default: FALSE for adjusted)}
+\item{auto_update}{Auto-update database (default: FALSE)}
 
 \item{frequency}{"daily", "weekly", or "monthly" (default: "daily")}
 
 \item{use_adjusted}{Use adjusted prices if available (default: TRUE)}
 }
 \value{
-Data.table with Date column and adjusted prices per symbol
+data.table with Date column and adjusted prices per symbol
 }
 \description{
-Loads adjusted stock prices (for splits/dividends) from SQLite database.
-Handles missing adjusted prices gracefully with warnings.
+Loads adjusted stock prices (for splits/dividends) from SQLite.
 }
 \examples{
-\dontrun{
-# Load monthly adjusted prices
-prices <- sql_adapter_adjusted("sp500.db",
-                              c("AAPL", "MSFT", "GOOGL"),
-                              start_date = "2020-01-01",
-                              end_date = "2021-01-01",
-                              frequency = "monthly")
+\dontshow{if (requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\donttest{
+prices <- sql_adapter_adjusted(
+  db_path   = "sp500.db",
+  symbols   = c("AAPL", "MSFT"),
+  start_date = "2020-01-01",
+  end_date   = "2020-12-31",
+  frequency  = "monthly"
+)
+head(prices)
 }
+\dontshow{\}) # examplesIf}
 }

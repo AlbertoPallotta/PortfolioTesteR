@@ -18,8 +18,9 @@ Computes drawdown series from portfolio values.
 \examples{
 data("sample_prices_weekly")
 momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
-selected <- filter_top_n(momentum, n = 10)
-weights <- weight_equally(selected)
-result <- run_backtest(sample_prices_weekly, weights)
-dd_series <- calculate_drawdown_series(result$portfolio_value)
+sel <- filter_top_n(momentum, n = 10)
+W   <- weight_equally(sel)
+res <- run_backtest(sample_prices_weekly, W)
+dd_series <- calculate_drawdown_series(res$portfolio_values)
+dd_stats  <- analyze_drawdowns(dd_series, res$returns)
 }

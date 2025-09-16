@@ -18,27 +18,31 @@ sql_adapter(
 
 \item{symbols}{Character vector of stock symbols to load}
 
-\item{start_date}{Start date (YYYY-MM-DD format) or NULL for all}
+\item{start_date}{Start date (YYYY-MM-DD) or NULL}
 
-\item{end_date}{End date (YYYY-MM-DD format) or NULL for all}
+\item{end_date}{End date (YYYY-MM-DD) or NULL}
 
 \item{auto_update}{Auto-update database before loading (default: TRUE)}
 
 \item{frequency}{"daily", "weekly", or "monthly" (default: "daily")}
 }
 \value{
-Data.table with Date column and one column per symbol
+data.table with Date column and one column per symbol
 }
 \description{
 Loads stock price data from SQLite database with automatic frequency conversion.
-Supports daily, weekly, and monthly frequencies with auto-update capability.
 }
 \examples{
-\dontrun{
-# Load weekly data for specific symbols
-prices <- sql_adapter("sp500.db", c("AAPL", "MSFT"),
-                     start_date = "2020-01-01",
-                     end_date = "2021-01-01",
-                     frequency = "weekly")
+\dontshow{if (requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\donttest{
+prices <- sql_adapter(
+  db_path   = "sp500.db",
+  symbols   = c("AAPL", "MSFT"),
+  start_date = "2020-01-01",
+  end_date   = "2020-12-31",
+  frequency  = "weekly"
+)
+head(prices)
 }
+\dontshow{\}) # examplesIf}
 }
