@@ -193,7 +193,7 @@ run_walk_forward <- function(prices,
         builder(extended_pr, opt_result$best_params)
       }
 
-      # ✅ Validate against extended window
+      # [OK] Validate against extended window
       extended_w <- .pt_validate_weights(
         extended_pr, extended_w,
         context = sprintf("WF window %d (extended)", i),
@@ -205,7 +205,7 @@ run_walk_forward <- function(prices,
       oos_weights <- extended_w[oos_start:nrow(extended_w), , drop = FALSE]
       oos_prices  <- prices[window$oos_idx, , drop = FALSE]
 
-      # ✅ Validate OOS alignment exactly
+      # [OK] Validate OOS alignment exactly
       oos_weights <- .pt_validate_weights(
         oos_prices, oos_weights,
         context = sprintf("WF window %d (OOS from warmup)", i),
@@ -234,7 +234,7 @@ run_walk_forward <- function(prices,
         builder(oos_prices, opt_result$best_params)
       }
 
-      # ✅ Validate OOS weights vs OOS prices
+      # [OK] Validate OOS weights vs OOS prices
       oos_weights <- .pt_validate_weights(
         oos_prices, oos_weights,
         context = sprintf("WF window %d (OOS)", i),
@@ -469,3 +469,266 @@ print.wf_optimization_result <- function(x, ...) {
   cat("\nUse wf_report() for detailed results\n")
   invisible(x)
 }
+
+
+#' Plot Walk-Forward Results
+#'
+#' Visual diagnostics for a \code{wf_optimization_result} returned by
+#' [run_walk_forward()]. Supported types:
+#' \itemize{
+#'   \item "parameters": best parameter values chosen per window.
+#'   \item "is_oos": in-sample vs out-of-sample scores by window.
+#'   \item "equity": stitched out-of-sample equity curve.
+#'   \item "drawdown": drawdown of the stitched OOS curve.
+#'   \item "windows": per-window bar/line chart of an OOS metric (see \code{metric}).
+#'   \item "stability": summary of parameter stability.
+#'   \item "distributions": distributions of IS/OOS scores across windows.
+#' }
+#'
+#' @param x A \code{wf_optimization_result} from [run_walk_forward()].
+#' @param y Ignored.
+#' @param type One of "parameters","is_oos","equity","drawdown",
+#'   "windows","stability","distributions".
+#' @param param Character vector of parameter names to include for
+#'   "parameters"/"stability"/"distributions". If \code{NULL}, uses all.
+#' @param metric Character; column to plot for "is_oos" or "windows"
+#'   (e.g., "OOS_Return" or "OOS_Score"). Ignored for other types.
+#' @param main,sub,xlab,ylab Base plotting annotations.
+#' @param ... Additional plot options (type-specific).
+#'
+#' @return Invisibly, a small list describing the plot.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   b <- function(prices, params, ...) {
+#'     weight_equally(filter_top_n(calc_momentum(prices, params$lookback),
+#'                                 params$top_n))
+#'   }
+#'   wf <- run_walk_forward(
+#'     prices = sample_prices_weekly,
+#'     grid   = list(lookback = c(8, 12, 26), top_n = c(5, 10)),
+#'     builder = b,
+#'     is_periods = 52, oos_periods = 26, step = 26
+#'   )
+#'   plot(wf, type = "parameters")
+#'   plot(wf, type = "is_oos", metric = "OOS_Score")
+#' }
+#'
+#' @seealso [run_walk_forward()], [wf_report()], [print.wf_optimization_result()]
+#'
+#' @method plot wf_optimization_result
+#' @export
+#' @importFrom graphics axis box layout plot.new points title
+plot.wf_optimization_result <- function(
+    x, y = NULL,
+    type = c("parameters","is_oos","equity","drawdown","windows","stability","distributions"),
+    param = NULL,          # which parameter(s) for parameters/stability/distributions
+    metric = NULL,         # for is_oos OR windows (choose which cols)
+    main = NULL, sub = NULL, xlab = NULL, ylab = NULL, ...
+) {
+  type <- match.arg(type)
+
+  # par safety
+  if (!exists(".with_par", mode = "function")) {
+    .with_par <- function(expr) { old <- par(no.readonly = TRUE); on.exit(par(old)); force(expr) }
+  }
+
+  os <- x$optimization_summary
+  if (is.null(os) || !nrow(os)) stop("wf_optimization_result has empty optimization_summary.")
+
+  # helper to detect parameter columns from summary
+  fixed_cols <- c("Window","IS_Score","OOS_Score","OOS_Return",
+                  "n_transactions","optimization_time")
+  param_cols <- setdiff(names(os), intersect(names(os), fixed_cols))
+
+  # ---------------- PARAMETERS (evolution across windows) ----------------
+  # ---- PARAMETERS (evolution across windows) ----
+  if (type == "parameters") {
+    # always use a simple 1..n sequence for x (avoids list/Date issues)
+    win <- seq_len(nrow(os))
+
+    # fields that aren't parameters
+    fixed_cols <- c("Window","IS_Score","OOS_Score","OOS_Return",
+                    "n_transactions","optimization_time")
+    param_cols <- setdiff(names(os), fixed_cols)
+    if (!is.null(param)) param_cols <- intersect(param_cols, param)
+    if (!length(param_cols)) stop("No parameter columns to plot.")
+
+    k <- length(param_cols); r <- ceiling(sqrt(k)); c <- ceiling(k / r)
+
+    .with_par({
+      par(mfrow = c(r, c), mar = c(4, 4, 3, 1) + 0.1)
+      for (p in param_cols) {
+        v <- os[[p]]
+        if (is.list(v)) v <- unlist(v, use.names = FALSE)     # flatten list-cols
+
+        vn <- suppressWarnings(as.numeric(v))
+        if (all(is.finite(vn))) {
+          plot(win, vn, type = "b", pch = 19,
+               xlab = if (is.null(xlab)) "Window" else xlab,
+               ylab = if (is.null(ylab)) p        else ylab,
+               main = if (is.null(main)) sprintf("Parameter: %s", p) else main, ...)
+          grid()
+        } else {
+          f  <- factor(v, levels = unique(v))
+          yy <- as.integer(f)
+          plot(win, yy, type = "b", pch = 19, yaxt = "n",
+               xlab = if (is.null(xlab)) "Window" else xlab,
+               ylab = if (is.null(ylab)) p        else ylab,
+               main = if (is.null(main)) sprintf("Parameter: %s", p) else main, ...)
+          axis(2, at = seq_along(levels(f)), labels = levels(f), las = 2)
+          grid()
+        }
+      }
+    })
+
+    return(invisible(list(kind="parameters", params=param_cols, n=k)))
+  }
+
+
+  # ---------------- IS vs OOS SCATTER ----------------
+  if (type == "is_oos") {
+    is_col  <- if (!is.null(metric) && length(metric) >= 1) metric[1] else
+      if ("IS_Score"  %in% names(os))  "IS_Score"  else names(os)[2]
+    oos_col <- if (!is.null(metric) && length(metric) >= 2) metric[2] else
+      if ("OOS_Score" %in% names(os)) "OOS_Score" else names(os)[3]
+    stopifnot(all(c(is_col, oos_col) %in% names(os)))
+    IS <- os[[is_col]]; OOS <- os[[oos_col]]
+    ok <- is.finite(IS) & is.finite(OOS); if (!any(ok)) stop("No finite IS/OOS pairs.")
+    rng <- range(c(IS[ok], OOS[ok]), na.rm = TRUE)
+    rho <- suppressWarnings(cor(IS, OOS, use = "complete.obs"))
+    .with_par({
+      plot(IS, OOS, xlab = is_col, ylab = oos_col,
+           main = if (is.null(main)) "IS vs OOS" else main,
+           xlim = rng, ylim = rng, pch = 19, ...); abline(0,1,lty=2,col="gray40"); grid()
+      legend("topleft", legend = sprintf("rho = %.2f", rho), bty = "n")
+    })
+    return(invisible(list(kind="is_oos", is_col=is_col, oos_col=oos_col, cor=rho)))
+  }
+
+  # ---------------- EQUITY (stitched OOS curve) ----------------
+  if (type == "equity") {
+    eq <- x$oos_stitched
+    if (is.null(eq) || !nrow(eq)) stop("oos_stitched is empty.")
+    .with_par({
+      plot(eq$Date, eq$Value, type="l", lwd=2,
+           xlab = if (is.null(xlab)) "Date" else xlab,
+           ylab = if (is.null(ylab)) "Portfolio Value" else ylab,
+           main = if (is.null(main)) "Walk-Forward Equity Curve" else main, ...)
+      grid()
+    })
+    return(invisible(list(kind="equity", n=nrow(eq))))
+  }
+
+  # ---------------- DRAWDOWN (from stitched OOS) ----------------
+  if (type == "drawdown") {
+    eq <- x$oos_stitched
+    if (is.null(eq) || !nrow(eq)) stop("oos_stitched is empty.")
+    v  <- eq$Value; dd <- 1 - v / cummax(v)
+    .with_par({
+      plot(eq$Date, dd * 100, type="l", lwd=2,
+           xlab = if (is.null(xlab)) "Date" else xlab,
+           ylab = if (is.null(ylab)) "Drawdown (%)" else ylab,
+           main = if (is.null(main)) "Walk-Forward Drawdown" else main, ...)
+      abline(h=0,lty=2,col="gray40"); grid()
+    })
+    return(invisible(list(kind="drawdown", min_dd = min(dd, na.rm=TRUE))))
+  }
+
+  # ---------------- WINDOWS (per-window bars) ----------------
+  if (type == "windows") {
+    win <- if ("Window" %in% names(os)) os$Window else seq_len(nrow(os))
+    # choose metric for bars: default OOS_Return if present, else OOS_Score
+    mcol <- if (!is.null(metric)) metric else if ("OOS_Return" %in% names(os)) "OOS_Return" else "OOS_Score"
+    stopifnot(mcol %in% names(os))
+    vals <- os[[mcol]]
+    .with_par({
+      par(mar = c(5, 4, 4, 2) + 0.1)
+      bp <- barplot(height = vals, names.arg = win,
+                    xlab = if (is.null(xlab)) "Window" else xlab,
+                    ylab = if (is.null(ylab)) mcol else ylab,
+                    main = if (is.null(main)) sprintf("Per-window %s", mcol) else main, ...)
+      abline(h = 0, col = "gray40", lty = 2); grid(nx = 0, ny = NULL)
+    })
+    return(invisible(list(kind="windows", metric=mcol)))
+  }
+
+  # ---------------- STABILITY (freq; 1D or 2D) ----------------
+  if (type == "stability") {
+    if (is.null(param) || length(param) == 0) {
+      # pick first two params if not specified
+      if (!length(param_cols)) stop("No parameter columns in optimization_summary.")
+      param <- head(param_cols, 2)
+    }
+    if (length(param) == 1) {
+      v <- os[[param]]; if (is.list(v)) v <- unlist(v, use.names = FALSE)
+      f <- factor(v)
+      .with_par({
+        barplot(table(f), main = if (is.null(main)) sprintf("Stability: %s", param) else main,
+                xlab = param, ylab = "Frequency", ...)
+        grid(nx = 0, ny = NULL)
+      })
+      return(invisible(list(kind="stability", params=param, dim=1)))
+    } else {
+      # ... inside plot.wf_optimization_result(), in the stability 2D else-branch:
+
+      p1 <- param[1]; p2 <- param[2]
+      a <- os[[p1]]; b <- os[[p2]]
+      if (is.list(a)) a <- unlist(a, use.names = FALSE)
+      if (is.list(b)) b <- unlist(b, use.names = FALSE)
+
+      A <- factor(a); B <- factor(b)
+      tab <- table(B, A)                     # rows = B (y), cols = A (x)
+      z   <- as.matrix(tab)
+
+      xlabs <- colnames(z);  ylabs <- rownames(z)
+      xvals <- seq_len(ncol(z)); yvals <- seq_len(nrow(z))
+
+      pal <- grDevices::hcl.colors(100, "YlOrRd", rev = TRUE)
+
+      .with_par({
+        # transpose so nrow(zT)=length(x), ncol(zT)=length(y)
+        zT <- t(z)
+        image(xvals, yvals, zT, col = pal,
+              xlab = p1, ylab = p2,
+              main = if (is.null(main)) sprintf("Stability: %s x %s", p1, p2) else main, ...)
+        axis(1, at = xvals, labels = xlabs, las = 2)
+        axis(2, at = yvals, labels = ylabs, las = 2)
+        box()
+      })
+      return(invisible(list(kind="stability", params=c(p1,p2), dim=2)))
+
+    }
+  }
+
+  # ---------------- DISTRIBUTIONS (per-parameter) ----------------
+  if (type == "distributions") {
+    if (!length(param_cols)) stop("No parameter columns in optimization_summary.")
+    if (!is.null(param)) param_cols <- intersect(param_cols, param)
+    k <- length(param_cols); r <- ceiling(sqrt(k)); c <- ceiling(k / r)
+    .with_par({
+      par(mfrow = c(r, c), mar = c(4, 4, 3, 1) + 0.1)
+      for (p in param_cols) {
+        v <- os[[p]]; if (is.list(v)) v <- unlist(v, use.names = FALSE)
+        vn <- suppressWarnings(as.numeric(v))
+        if (all(is.finite(vn))) {
+          hist(vn, breaks = "FD",
+               main = if (is.null(main)) sprintf("Distribution: %s", p) else main,
+               xlab = p, ylab = "Count", col = "gray85", border = "white", ...)
+          grid()
+        } else {
+          barplot(table(v),
+                  main = if (is.null(main)) sprintf("Distribution: %s", p) else main,
+                  xlab = p, ylab = "Count", ...)
+          grid(nx = 0, ny = NULL)
+        }
+      }
+    })
+    return(invisible(list(kind="distributions", params=param_cols)))
+  }
+
+  message(sprintf("Plot type '%s' not implemented.", type))
+  invisible(list(type = type))
+}
+

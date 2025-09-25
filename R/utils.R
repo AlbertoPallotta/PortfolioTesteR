@@ -444,15 +444,21 @@ invert_signal <- function(signal_df) {
   return(dt)
 }
 
-
-# --- tiny coalesce helpers (used by wf_report/print) -------------------------
+#' Internal helper: simple coalesce
+#' @keywords internal
+#' @noRd
 .pt_coalesce <- function(x, default) {
   if (is.null(x) || (length(x) == 1 && is.na(x))) default else x
 }
+
+#' Internal helper: coalesce limited to NULL or NA
+#' @keywords internal
+#' @noRd
 .pt_null_coalesce <- function(x, default) .pt_coalesce(x, default)
 
-# --- frequency detection (shared by metric_sharpe, reports, etc.) ------------
-# Returns: 252 (daily), 52 (weekly), 12 (monthly), 4 (quarterly)
+#' Internal helper: detect sampling frequency (per year)
+#' @keywords internal
+#' @noRd
 .pt_detect_frequency <- function(dates) {
   if (length(dates) < 2) return(252)
   d <- as.Date(dates)
@@ -476,7 +482,9 @@ invert_signal <- function(signal_df) {
   252
 }
 
-# --- forbid cadence/timeframe knobs in param grids (optimization + WF) -------
+#' Internal helper: reject cadence/timeframe knobs in grids
+#' @keywords internal
+#' @noRd
 .pt_check_grid_params <- function(grid, context = "optimization") {
   # Block structural fields + cadence/timeframe synonyms
   forbidden <- c(
@@ -496,7 +504,10 @@ invert_signal <- function(signal_df) {
     ), call. = FALSE)
   }
 }
-# --- Robust weights validator: class-preserving, date-safe, diagnostic-rich
+
+#' Internal helper: robust weights validator and aligner
+#' @keywords internal
+#' @noRd
 .pt_validate_weights <- function(prices, weights, context = "weights", allow_sparse = TRUE) {
   # Work internally as base data.frames
   P <- as.data.frame(prices,  check.names = FALSE, stringsAsFactors = FALSE)

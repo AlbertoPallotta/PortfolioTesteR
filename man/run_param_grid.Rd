@@ -14,7 +14,8 @@ run_param_grid(
   light_mode = TRUE,
   precompute_returns = TRUE,
   builder_args = list(),
-  n_cores = 1
+  n_cores = 1,
+  fixed = NULL
 )
 }
 \arguments{
@@ -37,6 +38,10 @@ run_param_grid(
 \item{builder_args}{List of extra args forwarded to builder (e.g., caches)}
 
 \item{n_cores}{Integer (kept for API compatibility; ignored here)}
+
+\item{fixed}{Optional named list of \strong{constant} parameters merged into every combo.
+If a name appears in both \code{grid} and \code{fixed}, the \strong{fixed value wins} and that
+column is \strong{pruned from the grid} (fewer duplicate combos; clearer counts).}
 }
 \value{
 param_grid_result
