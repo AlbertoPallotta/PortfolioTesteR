@@ -262,7 +262,103 @@ summary(result5)
 plot(result5, type = "performance")
 ```
 
+## Strategy 6: StochRSI Acceleration + Inverse-Vol Risk Parity
 
+
+Advanced Strategy: StochRSI Acceleration + Inverse-Vol Risk Parity
+- Gate to high StochRSI (>= 0.80), then select top-12 by acceleration
+- Allocate by inverse-volatility risk parity using DAILY prices
+- Backtest on the weekly grid (bundled datasets only; CRAN-friendly)
+```{r strategy6}
+# Data
+data(sample_prices_weekly)
+data(sample_prices_daily)
+
+# Exclude broad ETFs from stock-selection universe
+symbols_all   <- setdiff(names(sample_prices_weekly), "Date")
+stock_symbols <- setdiff(symbols_all, c("SPY", "TLT"))
+
+weekly_stocks <- sample_prices_weekly[, c("Date", stock_symbols), with = FALSE]
+daily_stocks  <- sample_prices_daily[,  c("Date", stock_symbols), with = FALSE]
+
+# StochRSI "acceleration" signal (weekly)
+stochrsi    <- calc_stochrsi(weekly_stocks, length = 14)   # in [0,1]
+stochrsi_ma <- calc_moving_average(stochrsi, window = 5)
+accel       <- calc_distance(stochrsi, stochrsi_ma)        # positive = rising
+
+# Gate to high StochRSI zone, then take top-12 by acceleration
+high_zone <- filter_above(stochrsi, value = 0.80)
+sel <- filter_top_n_where(
+  signal_df     = accel,
+  n             = 12,
+  condition_df  = high_zone,
+  min_qualified = 8,
+  ascending     = FALSE
+)
+
+# Allocation: inverse-volatility risk parity (DAILY prices)
+w_ivol <- weight_by_risk_parity(
+  selected_df      = sel,
+  prices_df        = daily_stocks,
+  method           = "inverse_vol",
+  lookback_periods = 126,  # ~6 months
+  min_periods      = 60
+)
+
+# Backtest on the weekly grid
+res_stochrsi <- run_backtest(
+  prices          = weekly_stocks,
+  weights         = w_ivol,
+  initial_capital = 100000,
+  name            = "StochRSI Accel + InvVol RP"
+)
+
+print(res_stochrsi)
+summary(res_stochrsi)
+
+
+```
+
+
+```{r strategy6_plot}
+plot(res_stochrsi, type = "performance")
+```
+
+
+
+## Optional: Live Data via Yahoo (CRAN-safe)
+
+Below is a minimal example that fetches prices from Yahoo Finance and runs the same
+“calculate → filter → weight → backtest” pipeline. The code is **disabled** inside
+CRAN/devtools checks. To run it locally, set `Sys.setenv(RUN_LIVE = "true")` before knitting.
+
+```{r live_data, eval = identical(Sys.getenv("RUN_LIVE"), "true")}
+library(PortfolioTesteR)
+
+# Fetch weekly data for a small set of tickers
+tickers <- c("AAPL","MSFT","AMZN","GOOGL","META")
+px_weekly <- yahoo_adapter(
+  symbols   = tickers,
+  frequency = "weekly"
+)
+
+# Simple momentum: top-3 by 12-week return, equal weight
+mom  <- calc_momentum(px_weekly, lookback = 12)
+sel  <- filter_top_n(mom, n = 3)
+w_eq <- weight_equally(sel)
+
+res_yh <- run_backtest(
+  prices          = px_weekly,
+  weights         = w_eq,
+  initial_capital = 100000,
+  name            = "Yahoo: Simple Momentum (Top 3)"
+)
+
+print(res_yh)
+summary(res_yh)
+
+
+```
 
 ## Key Concepts Recap
 

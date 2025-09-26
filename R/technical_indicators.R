@@ -262,80 +262,116 @@ calc_cci <- function(data, period = 20) {
 ###############################################################################
 # CUSTOM IMPLEMENTATIONS - Where TTR doesn't match pandas_ta exactly
 ###############################################################################
-
-calc_stochrsi <- function(data, length = 14) {
-  # Calculate Stochastic RSI (stochrsi) for each ticker's close prices.
-  # Custom implementation to match Python pandas_ta behavior exactly
-  #
-  # Args:
-  #   data (DataFrame): Price data with dates as index, tickers as columns
-  #   length (int): RSI period for stoch RSI (14 is common)
-  #
-  # Returns:
-  #   DataFrame: Stochastic RSI %K values in [0..1] range
-
-  # Check TTR availability for RSI calculation
+#' Stochastic RSI (StochRSI) for multiple price series
+#'
+#' Computes Stochastic RSI (%K) per column over a rolling window, returning
+#' values in \[0, 1\]. For each symbol, RSI is computed with [TTR::RSI()] over
+#' `rsi_length` periods; then StochRSI is
+#' \eqn{(RSI_t - \min RSI_{t-L+1:t}) / (\max RSI_{t-L+1:t} - \min RSI_{t-L+1:t})},
+#' where \eqn{L} is `stoch_length`. If the range is zero the value is handled
+#' per `on_const_window` (default `"zero"`).
+#'
+#' @param data A `data.frame` or `data.table` with a `Date` column and one
+#'   price column per symbol (wide format).
+#' @param length Integer lookback used when `rsi_length`/`stoch_length` are NULL. Default `14`.
+#' @param rsi_length Optional integer RSI lookback. Default: `length`.
+#' @param stoch_length Optional integer stochastic window. Default: `length`.
+#' @param on_const_window How to handle windows where `maxRSI == minRSI`?
+#'   One of `"zero"` (set to 0), `"na"` (leave `NA`). Default `"zero"`.
+#'
+#' @return A `data.table` with `Date` and symbol columns containing StochRSI
+#'   in \[0, 1\], with leading `NA`s for warmup.
+#'
+#' @seealso [TTR::RSI()], [calc_momentum()], [calc_moving_average()],
+#'   [filter_top_n()], [weight_by_risk_parity()]
+#'
+#' @examples
+#' data(sample_prices_weekly)
+#' s <- calc_stochrsi(sample_prices_weekly, length = 14)
+#' head(s)
+#'
+#' @importFrom TTR RSI runMin runMax
+#' @export
+calc_stochrsi <- function(data,
+                          length = 14L,
+                          rsi_length = NULL,
+                          stoch_length = NULL,
+                          on_const_window = c("zero","na")) {
   check_ttr()
-#  library(TTR)
+  on_const_window <- match.arg(on_const_window)
 
-  # Convert to data.table if not already
-  setDT(data)
+  if (!is.data.frame(data) || !"Date" %in% names(data)) {
+    stop("'data' must be a data.frame/data.table with a 'Date' column")
+  }
+  if (is.null(rsi_length))   rsi_length   <- as.integer(length)
+  if (is.null(stoch_length)) stoch_length <- as.integer(length)
 
-  # Get symbol columns (all except Date)
-  symbol_cols <- setdiff(names(data), "Date")
-
-  # Initialize result with same structure
-  stochrsi_df <- copy(data)
-
-  # Calculate Stochastic RSI for each column
-  for (col in symbol_cols) {
-    # Step 1: Calculate RSI
-    rsi_values <- RSI(data[[col]], n = length)
-
-    if (any(!is.na(rsi_values))) {
-      # Step 2: Apply Stochastic formula to RSI values
-      # Stochastic %K = (current_rsi - lowest_rsi_in_period) / (highest_rsi_in_period - lowest_rsi_in_period)
-
-      stochrsi_values <- numeric(length(rsi_values))
-      stochrsi_values[] <- NA_real_
-
-      for (i in length:length(rsi_values)) {
-        # Get RSI values for the lookback window
-        start_idx <- max(1, i - length + 1)
-        rsi_window <- rsi_values[start_idx:i]
-
-        # Remove NAs for calculation
-        rsi_window_clean <- rsi_window[!is.na(rsi_window)]
-
-        if (length(rsi_window_clean) > 0) {
-          current_rsi <- rsi_values[i]
-          lowest_rsi <- min(rsi_window_clean)
-          highest_rsi <- max(rsi_window_clean)
-
-          # Avoid division by zero
-          if (!is.na(current_rsi) && (highest_rsi - lowest_rsi) != 0) {
-            stochrsi_k <- (current_rsi - lowest_rsi) / (highest_rsi - lowest_rsi)
-            stochrsi_values[i] <- stochrsi_k
-          }
-        }
-      }
-
-      # Normalize to [0..1] range (Python version does this)
-      # TTR often returns [0..100], but Python pandas_ta returns [0..1]
-      if (max(stochrsi_values, na.rm = TRUE) > 1.5) {
-        stochrsi_values <- stochrsi_values / 100.0
-      }
-
-      stochrsi_df[, (col) := stochrsi_values]
-    } else {
-      stochrsi_df[, (col) := NA_real_]
-    }
+  # Preserve user data; don't mutate by reference
+  dt <- if (exists("ensure_dt_copy", mode = "function")) {
+    ensure_dt_copy(data)
+  } else {
+    data.table::as.data.table(data)
   }
 
-  return(stochrsi_df)
+  syms <- setdiff(names(dt), "Date")
+  out  <- dt[, .(Date)]
+
+  for (nm in syms) {
+    x   <- as.numeric(dt[[nm]])
+    rsi <- TTR::RSI(x, n = rsi_length)
+
+    rmin  <- TTR::runMin(rsi, n = stoch_length)
+    rmax  <- TTR::runMax(rsi, n = stoch_length)
+    denom <- rmax - rmin
+
+    srs <- (rsi - rmin) / denom
+    flat <- is.finite(denom) & (denom == 0)
+
+    if (any(flat, na.rm = TRUE)) {
+      if (on_const_window == "zero") srs[flat] <- 0
+      # else "na": leave as NA
+    }
+
+    # Clamp to [0,1] for safety and match pandas_ta-style scaling
+    srs <- pmin(pmax(srs, 0), 1)
+    out[[nm]] <- srs
+  }
+
+  data.table::setDT(out)
+  out
 }
 
-
+#' Rolling correlation of each symbol to a benchmark
+#'
+#' Computes rolling correlations between each symbol and a benchmark series
+#' (e.g., `SPY`) using simple returns over a fixed lookback window.
+#'
+#' @param data A `data.frame` or `data.table` with a `Date` column and one
+#'   column per symbol containing prices. Must include `benchmark_symbol`.
+#' @param benchmark_symbol Character, the benchmark column name (default `"SPY"`).
+#' @param lookback Integer window size (>= 2) for rolling correlations.
+#' @param min_periods Minimum number of valid observations within the window
+#'   to compute a correlation. Default is `ceiling(lookback * 0.67)`.
+#' @param method Correlation method, `"pearson"` (default) or `"spearman"`.
+#'
+#' @return A `data.table` with `Date` and one column per non-benchmark symbol,
+#'   containing rolling correlations. Insufficient data yields `NA`s.
+#'
+#' @details Returns are computed as simple returns \eqn{(P_t - P_{t-1})/P_{t-1}}.
+#'   Windows with fewer than `min_periods` valid pairs are marked `NA`.
+#'
+#' @examples
+#' data(sample_prices_weekly)
+#' corr <- calc_rolling_correlation(
+#'   data = sample_prices_weekly,
+#'   benchmark_symbol = "SPY",
+#'   lookback = 20
+#' )
+#' head(corr)
+#'
+#' @seealso [calc_momentum()], [calc_rolling_volatility()]
+#' @importFrom stats cor
+#' @export
 calc_rolling_correlation <- function(data, benchmark_symbol = "SPY",
                                      lookback = 60, min_periods = NULL,
                                      method = c("pearson", "spearman")) {
