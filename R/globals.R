@@ -54,7 +54,14 @@ utils::globalVariables(c(
   "last",
 
   # Pipe operator (if using magrittr)
-  "%>%"
+  "%>%",
+  # data.table NSE helpers used in ML utilities
+  "..syms",
+  "score",
+  "sharpe",
+  "sharpe_med",
+  "annret_med"
+
 ))
 
 # Note: The following are functions that should be imported via NAMESPACE,

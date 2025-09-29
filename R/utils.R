@@ -548,7 +548,7 @@ invert_signal <- function(signal_df) {
     warning(sprintf("[%s] No matching asset columns; returning all-zero weights.", context), call. = FALSE)
     out_df <- data.frame(Date = P$Date, check.names = FALSE)
     for (nm in asset_p) out_df[[nm]] <- 0
-    # Return as data.table if available (so run_backtest’s with=FALSE works)
+    # Return as data.table if available (so run_backtest's with=FALSE works)
     if (requireNamespace("data.table", quietly = TRUE)) {
       return(data.table::as.data.table(out_df))
     } else {

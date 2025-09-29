@@ -1,3 +1,39 @@
+# PortfolioTesteR 0.1.2
+
+## New
+- **Tabular ML pipeline**
+  - `roll_fit_predict()` — rolling fit/predict for pooled / per-symbol / per-group workflows.
+  - `ml_backtest()` — one-call wrapper to go from features → scores → weights → backtest.
+  - `tune_ml_backtest()` — quick hyper-parameter sweeps (e.g., `top_k`, `temperature`, `method`, `transform`).
+
+- **Sequence (deep-learning-ready) pipeline**
+  - `roll_fit_predict_seq()` — rolling fit/predict over flattened sequence features (steps-by-p).
+  - `ml_backtest_seq()` — wrapper for sequences with in-sample normalization and standard selection/weighting/caps.
+  - **CV for sequences:** `cv_tune_seq()` implements purged/embargoed K-fold inside the IS window.
+  - **Walk-forward sweeps:** `wf_sweep_tabular()` reports distributions of OOS metrics across WF windows.
+
+- **Diagnostics**
+  - `membership_stability()` — turnover-free view of portfolio membership drift.
+  - `turnover_by_date()` — simple turnover series for backtests.
+  - `evaluate_scores()`, `ic_series()`, `coverage_by_date()` — score quality & coverage utilities.
+
+- **Utilities / examples**
+  - `demo_sector_map()` and `validate_group_map()` for group-aware modeling.
+  - RAM safety guards in sequence builders (caps via `max_samples`, `mem_budget_gb`, informative warnings).
+
+## Improvements
+- Consistent IS-only normalization for ML workflows; leakage guards tightened.
+- Examples use `\donttest{}` and `@examplesIf()` for any network/DB access; heavy code paths kept tiny by default.
+- Vignettes build with standard `rmarkdown::html_vignette`; removed Quarto shell probes.
+- `globals.R` extended to silence `data.table` NSE NOTES on CRAN.
+- Documentation pass: clarified “steps-by-p” wording; added missing parameters and aligned argument names.
+
+## Compatibility
+- **No breaking changes.** Existing strategies and vignettes continue to work.
+- Minor doc/API tidy: `validate_no_leakage(features, labels, verbose)` standardized.
+
+---
+
 # PortfolioTesteR 0.1.1
 
 *Initial CRAN release.*
@@ -12,16 +48,6 @@
 - SQL examples no longer require `DBI`; they now guard on `RSQLite` and a local database file.
 - Added helper utilities for packaged examples: `list_examples()` and `run_example()`.
 - Data adapters:
-  - New `sql_adapter_adjusted()` for adjusted prices.
-  - New `load_mixed_symbols()` to load equities together with VIX safely.
-  - `convert_to_nweeks()` handles monthly via `n = 4`; `sql_adapter()` monthly path fixed.
-- Backtest printing/plotting tidied; drawdown calc hardened via `safe_divide()`.
+  - New `sql_adapter_adjust
 
-## Documentation / Namespace
-- Added `@param x` and `@param ...` to S3 print methods to satisfy CRAN checks.
-- `wf_stitch()` now declares `@importFrom stats aggregate` (updated NAMESPACE).
-- Expanded CSV adapter and validation examples.
-
-## Compatibility
-- No breaking API changes; existing examples and vignettes continue to work.
 

@@ -21,7 +21,7 @@ calc_sector_breadth(
 \item{na_sector_action}{How to handle unmapped stocks: "exclude", "separate", or "market"}
 }
 \value{
-A \code{data.table} with \code{Date} and \code{Breadth_[Sector]} columns (0–100 scale)
+A \code{data.table} with \code{Date} and \code{Breadth_[Sector]} columns (0-100 scale)
 }
 \description{
 Measures participation within each sector separately, revealing which sectors

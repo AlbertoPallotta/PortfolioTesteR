@@ -1,22 +1,27 @@
-# CRAN submission: PortfolioTesteR 0.1.1
+# PortfolioTesteR 0.1.2 — CRAN submission
+
+## Release summary
+This release adds an ML backtesting pipeline and sequence (DL-ready) utilities, plus documentation and CRAN hygiene improvements.
+
+- **Tabular ML:** `roll_fit_predict()`, `ml_backtest()`, `tune_ml_backtest()`.
+- **Sequence pipeline:** `roll_fit_predict_seq()`, `ml_backtest_seq()`, `cv_tune_seq()` (purged/embargoed CV), `wf_sweep_tabular()`.
+- **Diagnostics:** `evaluate_scores()`, `ic_series()`, `coverage_by_date()`, `membership_stability()`, `turnover_by_date()`.
+- **CRAN-proofing:** examples use `\donttest{}` or `@examplesIf()` for network/DB; data.table NSE globals declared; ASCII-only code; vignettes use `rmarkdown::html_vignette` (no Quarto dependency at build time).
 
 ## Test environments
-* Local Windows 10, R 4.2.1 — PASS
-* win-builder (R-devel) — PASS
-* R-hub v2 (GitHub Actions): Windows (R-devel), macOS (R-devel), Ubuntu (release) — PASS
+* Windows (local): R 4.2.1, x86_64-w64-mingw32  
+* macOS (local): R 4.x (if applicable)  
+* Linux (GitHub Actions / local): R release  
+<!-- If you ran them, keep the next two lines; otherwise delete. -->
+<!-- * win-builder: R-devel — OK -->
+<!-- * rhub: Ubuntu 22.04 (R-release), Fedora (R-devel) — OK -->
 
 ## R CMD check results
 0 errors | 0 warnings | 0 notes
 
-All examples/vignettes build successfully. Any Quarto console output seen locally does not affect checks.
-
-## Resubmission (0.1.1)
-* Replaced all \dontrun{} with \donttest{} or @examplesIf(...); re-roxygenized docs.
-* Added @importFrom stats aggregate for `wf_stitch()`; NAMESPACE regenerated.
-* Fixed S3 docs for print methods (x, ... + aliases): param_grid_result, wf_optimization_result, backtest_result.
-* Removed DBI from examples; SQLite examples now guard with @examplesIf(requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")).
-* New optional APIs: run_param_grid(), metric_sharpe(), run_walk_forward(), wf_stitch(), wf_report().
-
-## Additional notes
-* roxygen2 re-run; NAMESPACE and Rd are up to date.
-
+## Notes for CRAN
+* Examples that would download data or run heavier ML are wrapped in `\donttest{}` and/or `@examplesIf()` (conditional on suggested packages and network).
+* Tests that would be slow or depend on online data are guarded with `testthat::skip_on_cran()`.
+* Vignettes are lightweight and use `rmarkdown::html_vignette`; no external services are called during build.
+* Non-ASCII tokens were removed from code (e.g., replaced `×` with `x` in docs).
+* No reverse dependencies.

@@ -438,7 +438,7 @@ calc_correlation_dispersion <- function(returns_df = NULL,
 #' @param condition_df Data frame with Date column and TRUE/FALSE values
 #' @param min_stocks Minimum stocks required for valid calculation (default: 10)
 #'
-#' @return A `data.table` with `Date` and `Breadth_[Sector]` columns (0–100 scale)
+#' @return A `data.table` with `Date` and `Breadth_[Sector]` columns (0-100 scale)
 #' @export
 #' @examples
 #' # Percent of stocks above 200-day MA
@@ -758,7 +758,7 @@ rank_within_sector <- function(indicator_df,
 #' @param min_stocks_per_sector Minimum stocks for valid sector breadth (default: 3)
 #' @param na_sector_action How to handle unmapped stocks: "exclude", "separate", or "market"
 #'
-#' @return A `data.table` with `Date` and `Breadth_[Sector]` columns (0–100 scale)
+#' @return A `data.table` with `Date` and `Breadth_[Sector]` columns (0-100 scale)
 #' @export
 #' @examples
 #' data("sample_prices_weekly")

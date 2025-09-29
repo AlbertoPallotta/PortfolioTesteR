@@ -12,7 +12,7 @@ calc_market_breadth(condition_df, min_stocks = 10)
 \item{min_stocks}{Minimum stocks required for valid calculation (default: 10)}
 }
 \value{
-A \code{data.table} with \code{Date} and \code{Breadth_[Sector]} columns (0–100 scale)
+A \code{data.table} with \code{Date} and \code{Breadth_[Sector]} columns (0-100 scale)
 }
 \description{
 Measures the percentage of stocks meeting a condition (market participation).
