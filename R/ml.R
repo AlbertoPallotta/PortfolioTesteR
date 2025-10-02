@@ -1,3 +1,4 @@
+
 # ---- Data & leakage control -------------------------------------------------
 utils::globalVariables(c("Date"))
 # Internal: rough memory estimate for seq designs (to avoid freezing RStudio)

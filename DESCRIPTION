@@ -29,7 +29,12 @@ Suggests:
     rvest,
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    glmnet,
+    ranger,
+    xgboost,
+    keras,
+    tensorflow
 VignetteBuilder: knitr
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
