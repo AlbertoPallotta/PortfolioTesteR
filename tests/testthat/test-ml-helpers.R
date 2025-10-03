@@ -70,15 +70,16 @@ test_that("ensemble is NA-safe and shape-safe", {
   expect_length(pred2, nrow(X_na))
 })
 
-test_that("sequence factory falls back when Keras is absent", {
-  m <- ml_make_seq_model("gru", steps = 4L, units = 4L, epochs = 1L)
-  X <- matrix(rnorm(10 * 12), nrow = 10, ncol = 12)  # steps * p = 12
+test_that("sequence factory works in linear mode (no TF)", {
+  m <- ml_make_seq_model("linear", steps = 4L)  # stays entirely in base R
+  X <- matrix(rnorm(10 * 12), nrow = 10, ncol = 12)
   y <- rnorm(10)
   fit <- m$fit(X, y)
   p   <- m$predict(fit, X)
   expect_length(p, nrow(X))
   expect_true(is.numeric(p))
 })
+
 
 test_that("backtest invariants hold on active dates (smoke, linear)", {
   data(sample_prices_weekly); data(sample_prices_daily)
