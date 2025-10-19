@@ -13,8 +13,8 @@ Design, backtest, and analyze portfolio strategies using simple, English-like fu
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/alb3rtazzo/PortfolioTesteR}
-  \item Report bugs at \url{https://github.com/alb3rtazzo/PortfolioTesteR/issues}
+  \item \url{https://github.com/AlbertoPallotta/PortfolioTesteR}
+  \item Report bugs at \url{https://github.com/AlbertoPallotta/PortfolioTesteR/issues}
 }
 
 }

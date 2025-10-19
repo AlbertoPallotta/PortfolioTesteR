@@ -60,7 +60,9 @@ utils::globalVariables(c(
   "score",
   "sharpe",
   "sharpe_med",
-  "annret_med"
+  "annret_med",
+  #for vol target
+  'CASH'
 
 ))
 

@@ -24,7 +24,7 @@ Install from GitHub:
 
 ```r
 # install.packages("devtools")
-devtools::install_github("alb3rtazzo/PortfolioTesteR")
+devtools::install_github("AlbertoPallotta/PortfolioTesteR")
 ```
 
 ## Quick Start Example
@@ -133,4 +133,4 @@ MIT License
 
 ## Contributing
 
-We welcome contributions! Please feel free to submit issues and pull requests on [GitHub](https://github.com/alb3rtazzo/PortfolioTesteR).
+We welcome contributions! Please feel free to submit issues and pull requests on [GitHub](https://github.com/AlbertoPallotta/PortfolioTesteR).

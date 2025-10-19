@@ -28,7 +28,7 @@ wf <- run_walk_forward(
   builder_args = list()
 )
 
-# Additional plots you haven't showcased yet:
+
 plot(wf, type = "windows",     metric = "OOS_Score")
 plot(wf, type = "drawdown")
 plot(wf, type = "distributions")

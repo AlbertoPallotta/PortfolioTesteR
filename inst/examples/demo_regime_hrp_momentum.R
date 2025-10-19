@@ -38,7 +38,6 @@ sel_reg <- apply_regime(
 )
 
 # --- HRP allocation (risk model from DAILY prices) ------------------------
-# Small lookbacks keep this fast and CRAN-friendly
 w_hrp <- weight_by_hrp(
   selected_df     = sel_reg,
   prices_df       = daily_trading,

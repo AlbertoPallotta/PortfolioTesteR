@@ -33,7 +33,7 @@ data.table with Date column and one column per symbol
 Loads stock price data from SQLite database with automatic frequency conversion.
 }
 \examples{
-\dontshow{if (requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")) withAutoprint(\{ # examplesIf}
 \donttest{
 prices <- sql_adapter(
   db_path   = "sp500.db",

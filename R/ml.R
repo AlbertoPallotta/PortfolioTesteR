@@ -599,10 +599,35 @@ validate_group_map <- function(symbols, group_map) {
 
 
 
-
-#' Demo sector map for examples/tests
-#' @param symbols character vector.
-#' @param n_groups integer groups to assign.
+#' Demo sector (group) map for examples/tests
+#'
+#' @param symbols character vector of tickers.
+#' @param n_groups integer number of groups to assign (cycled).
+#' @return A data.table with columns `Symbol` and `Group` (title-case), for demo use.
+#'
+#' @examples
+#' # Minimal usage
+#' syms <- c("AAPL","MSFT","AMZN","XOM","JPM")
+#' gdf  <- demo_sector_map(syms, n_groups = 3L)  # columns: Symbol, Group
+#' print(gdf)
+#'
+#' # Use with cap_exposure(): convert to a named vector (names = symbols)
+#' gmap <- stats::setNames(gdf$Group, gdf$Symbol)
+#'
+#' data(sample_prices_weekly)
+#' mom12 <- calc_momentum(sample_prices_weekly, 12)
+#' sel10 <- filter_top_n(mom12, 10)
+#' w_eq  <- weight_equally(sel10)
+#'
+#' w_cap <- cap_exposure(
+#'   weights          = w_eq,
+#'   max_per_symbol   = 0.10,
+#'   group_map        = gmap,     # <- named vector, OK for current cap_exposure()
+#'   max_per_group    = 0.45,
+#'   renormalize_down = TRUE
+#' )
+#' head(w_cap)
+#'
 #' @export
 demo_sector_map <- function(symbols, n_groups = 2L) {
   groups <- paste0("G", seq_len(n_groups))
@@ -1045,7 +1070,25 @@ carry_forward_weights <- function(weights) {
 
 
 # ==== RETURNS & PERFORMANCE ===================================================
-
+#' Panel simple returns from prices
+#'
+#' Converts a wide price panel (Date + symbols) into arithmetic simple returns
+#' at the same cadence, dropping the first row per symbol.
+#'
+#' @param prices A data frame or data.table with columns \code{Date} and one column
+#'   per symbol containing adjusted prices at a common frequency (daily, weekly, monthly).
+#'
+#' @return A data frame with \code{Date} and one column per symbol containing simple returns
+#'   \eqn{R_{t} = P_{t}/P_{t-1} - 1}.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   rets <- panel_returns_simple(sample_prices_weekly)
+#'   head(rets)
+#' }
+#'
+#' @export
 panel_returns_simple <- function(prices) {
   DT <- if (data.table::is.data.table(prices)) data.table::copy(prices) else data.table::as.data.table(prices)
   stopifnot("Date" %in% names(DT))
@@ -1057,49 +1100,118 @@ panel_returns_simple <- function(prices) {
   }
   R
 }
-
-# Portfolio returns using carried-forward weights; optional cost bps on rebalance days
+#' Portfolio returns from weights and prices (CASH-aware)
+#'
+#' Computes the portfolio simple return series by applying (lagged) portfolio
+#' weights to next-period asset returns, optionally net of proportional costs.
+#'
+#' **CASH support:** if `weights` contains a column named `"CASH"` (case-insensitive)
+#' but `prices` has no matching column, a synthetic flat price series is added
+#' internally (price = 1 ⇒ return = 0). In that case the function does **not**
+#' re-normalise the non-CASH weights; the row is treated as a complete budget
+#' (symbols + CASH = 1).
+#'
+#' @param weights A data.frame/data.table of portfolio weights on rebalance dates:
+#'   first column `Date`, remaining columns one per symbol (numeric weights).
+#'   Weights decided at \eqn{t-1} are applied to returns over \eqn{t}.
+#' @param prices A data.frame/data.table of adjusted prices at the same cadence:
+#'   first column `Date`, remaining columns one per symbol.
+#' @param cost_bps One-way proportional cost per side in basis points (e.g., `10`
+#'   for 10 bps). Default `0`. If `> 0` and your package exposes a turnover
+#'   helper, it will be used; otherwise costs are ignored with a warning.
+#'
+#' @return A `data.table` with columns `Date` and `ret` (portfolio simple return).
+#'
+#' @details
+#' The function carries forward the latest available weights to each return row
+#' via the usual one-period decision lag. Transaction cost handling is conservative:
+#' if a turnover helper is not available, costs are skipped.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, 12)
+#'   sel10 <- PortfolioTesteR::filter_top_n(mom12, 10)
+#'   w_eq  <- PortfolioTesteR::weight_equally(sel10)
+#'
+#'   pr <- portfolio_returns(w_eq, sample_prices_weekly, cost_bps = 0)
+#'   head(pr)
+#' }
+#'
+#' @seealso PortfolioTesteR::panel_returns_simple
+#' @export
 portfolio_returns <- function(weights, prices, cost_bps = 0) {
-  W <- if (data.table::is.data.table(weights)) data.table::copy(weights) else data.table::as.data.table(weights)
-  P <- if (data.table::is.data.table(prices))  data.table::copy(prices)  else data.table::as.data.table(prices)
-  stopifnot("Date" %in% names(W), "Date" %in% names(P))
-  syms <- Reduce(intersect, list(setdiff(names(W), "Date"), setdiff(names(P), "Date")))
-  dates <- Reduce(intersect, list(W$Date, P$Date))
-  stopifnot(length(syms) > 0, length(dates) > 1)
+  stopifnot(is.data.frame(weights), is.data.frame(prices))
+  stopifnot("Date" %in% names(weights), "Date" %in% names(prices))
 
-  W <- W[Date %in% dates, c("Date", syms), with = FALSE]
-  P <- P[Date %in% dates, c("Date", syms), with = FALSE]
+  W <- data.table::as.data.table(data.table::copy(weights))
+  P <- data.table::as.data.table(data.table::copy(prices))
+  data.table::setkey(W, Date); data.table::setkey(P, Date)
 
-  R <- panel_returns_simple(P)
-  Wcf <- carry_forward_weights(W)  # you already have this helper
+  w_syms <- setdiff(names(W), "Date")
+  p_syms <- setdiff(names(P), "Date")
 
-  ret <- rep(NA_real_, nrow(R))
-  for (t in 2:nrow(R)) {
-    w_prev <- as.numeric(Wcf[t-1, ..syms])
-    r_t    <- as.numeric(R[t,    ..syms])
-    ok <- is.finite(w_prev) & is.finite(r_t)
-    if (any(ok)) ret[t] <- sum(w_prev[ok] * r_t[ok])
+  # Detect CASH (case-insensitive) in weights
+  cash_col <- w_syms[tolower(w_syms) == "cash"]
+  if (length(cash_col) > 1L) {
+    stop("portfolio_returns(): multiple CASH-like columns in weights.")
+  }
+  has_cash_in_w <- length(cash_col) == 1L
+
+  # If CASH present in weights but missing in prices, synthesize a flat price
+  if (has_cash_in_w && !(cash_col %in% p_syms)) {
+    P[, (cash_col) := 1]  # flat price ⇒ 0 simple return
+    p_syms <- c(p_syms, cash_col)
   }
 
-  # Transaction costs on rebalance rows (0.5 * L1 turnover * cost%)
-  if (cost_bps > 0) {
-    rc <- rebalance_calendar(W) # you already have this helper
-    if (nrow(rc)) {
-      for (k in seq_len(nrow(rc))) {
-        t <- rc$row[k]
-        if (t >= 2 && t <= length(ret)) {
-          w_prev <- as.numeric(Wcf[t-1, ..syms])
-          w_new  <- as.numeric(Wcf[t,   ..syms])
-          turn   <- 0.5 * sum(abs(w_new - w_prev), na.rm = TRUE)
-          cost   <- (cost_bps / 1e4) * turn
-          ret[t] <- ifelse(is.na(ret[t]), -cost, ret[t] - cost)
-        }
+  # Intersect symbols actually available in both
+  syms <- intersect(w_syms, p_syms)
+  if (!length(syms)) stop("portfolio_returns(): no overlapping symbols between weights and prices.")
+
+  # Asset simple returns (Date + syms)
+  R <- PortfolioTesteR::panel_returns_simple(P[, c("Date", syms), with = FALSE])
+
+  # Decision lag: weights at t-1 apply to returns at t
+  R2   <- R[-1]
+  Wlag <- W[-.N]
+  stopifnot(nrow(R2) == nrow(Wlag))
+
+  # Compute portfolio returns row-wise
+  Xw <- as.matrix(Wlag[, ..syms])
+  Xr <- as.matrix(R2[, ..syms])
+  pr <- rowSums(Xw * Xr, na.rm = TRUE)
+
+  # Optional transaction costs (best-effort; ignored if helper missing)
+  if (is.numeric(cost_bps) && isTRUE(cost_bps > 0)) {
+    add_costs <- FALSE
+    # Try to use a turnover helper if available (best-effort)
+    if (exists("turnover_by_date", where = asNamespace("PortfolioTesteR"), inherits = FALSE)) {
+      # Attempt a safe call; if it fails, skip costs with a warning
+      to_dt <- try(PortfolioTesteR::turnover_by_date(W, P), silent = TRUE)
+      if (!inherits(to_dt, "try-error") && is.data.frame(to_dt) && "turnover" %in% names(to_dt)) {
+        # One-way cost on gross turnover (common convention)
+        c_perc <- as.numeric(cost_bps) / 1e4
+        cost   <- c_perc * to_dt$turnover
+        cost   <- cost[seq_along(pr)]  # align length defensively
+        cost[!is.finite(cost)] <- 0
+        pr <- pr - cost
+        add_costs <- TRUE
       }
     }
+    if (!add_costs) {
+      warning("portfolio_returns(): cost_bps > 0 but no compatible turnover helper found; costs ignored.")
+    }
   }
-  data.table::data.table(Date = R$Date, ret = ret)
+
+  data.table::data.table(Date = R2$Date, ret = pr)[]
 }
 
+#' Portfolio performance metrics
+#'
+#' @param ret_dt data.table/data.frame with columns `Date` and `ret`.
+#' @param freq Integer periods-per-year for annualization (e.g., 52 or 252).
+#' @return list with `total_return`, `ann_return`, `ann_vol`, `sharpe`, `max_drawdown`.
+#' @export
 perf_metrics <- function(ret_dt, freq = 52) {
   stopifnot(all(c("Date","ret") %in% names(ret_dt)))
   r <- ret_dt$ret[is.finite(ret_dt$ret)]
@@ -1121,8 +1233,8 @@ perf_metrics <- function(ret_dt, freq = 52) {
        sharpe = sharpe, max_drawdown = max_dd)
 }
 
-# ==== SIMPLE PARAMETER GRID TUNER ============================================
 
+# ==== SIMPLE PARAMETER GRID TUNER ============================================
 
 #' Quick grid tuning for tabular pipeline
 #' @param grid list of vectors: `top_k`, `temperature`, `method`, `transform`.
@@ -1205,7 +1317,6 @@ tune_ml_backtest <- function(features_list, labels, prices,
 
   data.table::rbindlist(lapply(rows, data.table::as.data.table), fill = TRUE)[order(-sharpe)]
 }
-
 
 
 
@@ -2018,3 +2129,8 @@ wf_sweep_tabular <- function(features_list, labels, prices,
   data.table::setorder(out, -sharpe_med, -annret_med)
   out
 }
+
+
+
+
+

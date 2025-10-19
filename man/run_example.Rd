@@ -18,7 +18,7 @@ Invisibly returns \code{NULL}. Runs the example for its side effects.
 Executes an example script bundled in the package \verb{inst/examples/} folder.
 }
 \examples{
-\dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
 \donttest{
 # Example (requires a real file under inst/examples):
 # run_example("basic.R")

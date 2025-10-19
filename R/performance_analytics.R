@@ -172,122 +172,135 @@ analyze_performance <- function(backtest_result, daily_prices,
 ###############################################################################
 # DAILY VALUE CALCULATION
 ###############################################################################
-
-
-#' Calculate Daily Portfolio Values (internal helper)
+#' Daily equity curve from positions and daily prices
 #'
-#' Tracks portfolio value on each trading day between rebalance dates by
-#' carrying forward the latest positions and combining them with daily prices
-#' and the strategy's cash at each rebalance.
+#' Carries portfolio positions (from a weekly or lower-frequency backtest)
+#' forward to daily dates, multiplies by daily prices, and combines with cash
+#' to produce a daily portfolio value series for monitoring and analytics.
 #'
-#' @details
-#' This is a plumbing function used by higher-level workflows. It converts
-#' rebalance-frequency positions into a daily time series for analysis and
-#' plotting. It assumes `positions` contain holdings at rebalance dates and
-#' `daily_prices` provide a wide daily price table for the same symbols.
+#' @param positions A `data.frame`/`data.table` of portfolio positions with
+#'   columns `Date` + symbols. Values should be the backtest’s **position
+#'   inventory** per symbol at each rebalance date (typically shares or notional
+#'   units consistent with your backtest’s accounting).
+#' @param daily_prices A `data.frame`/`data.table` of **daily** prices with
+#'   columns `Date` + the same symbol set present in `positions` (at least the
+#'   intersection).
+#' @param strategy_dates A `Date` vector of the backtest’s decision/rebalance
+#'   calendar (e.g., `backtest_result$dates`).
+#' @param initial_capital Numeric scalar. Starting cash used for days **before**
+#'   the first position exists (typically `backtest_result$initial_capital`).
+#' @param cash_values Optional numeric vector of cash balances at the strategy
+#'   dates (e.g., `backtest_result$cash`). If `NULL`, leading days are treated
+#'   as all-cash (= `initial_capital`) and post-rebalance cash defaults to 0.
 #'
-#' @param positions Data frame/data.table of target holdings at each rebalance
-#'   date. Expected columns: `Date` plus one column per symbol with *shares*
-#'   (or target holdings) at that rebalance date.
-#' @param daily_prices Wide daily price table with `Date` and one column per
-#'   symbol containing daily close (or valuation) prices.
-#' @param strategy_dates Date vector of rebalance dates corresponding to rows
-#'   of `positions`.
-#' @param initial_capital Numeric starting capital for the backtest.
-#' @param cash_values Optional cash specification at each rebalance:
-#'   - a single numeric (constant cash),
-#'   - a numeric vector aligned to `strategy_dates`, or
-#'   - a two-column `Date`/`cash` table at rebalance dates.
-#'   If `NULL`, cash before the first rebalance equals `initial_capital`, then
-#'   remains the last known rebalance cash going forward.
+#' @return A list with components:
+#' \itemize{
+#'   \item \code{dates} Daily dates within the strategy span.
+#'   \item \code{portfolio_values} Daily total portfolio value (positions + cash).
+#'   \item \code{positions_value} Daily mark-to-market of positions only.
+#'   \item \code{cash} Daily carried cash series.
+#' }
 #'
-#' @return A list with elements such as:
-#'   - `dates`: daily `Date` vector within the strategy period,
-#'   - `portfolio_values`: numeric vector of total portfolio value by day,
-#'   - `positions_value`: numeric vector of mark-to-market positions value by day,
-#'   - `cash`: numeric vector of daily cash carried from rebalance cash.
+#' @examples
+#' \donttest{
+#'   # Minimal end-to-end example using bundled data and a simple weekly backtest
+#'   library(PortfolioTesteR)
+#'   data(sample_prices_weekly); data(sample_prices_daily)
 #'
-#' @seealso [run_backtest()], [plot.backtest_result()], [summary.backtest_result()]
-#' @keywords internal
-#' @noRd
-calculate_daily_values <- function(positions, daily_prices, strategy_dates, initial_capital, cash_values) {
-  # Calculate portfolio value for each day based on positions
+#'   # Build a tiny strategy: momentum -> top-3 -> equal weights
+#'   mom <- calc_momentum(sample_prices_weekly, lookback = 12)
+#'   sel <- filter_top_n(mom, n = 3)
+#'   W   <- weight_equally(sel)
+#'   bt  <- run_backtest(sample_prices_weekly, W, name = "Demo")
+#'
+#'   # Compute daily monitoring values from positions + cash
+#'   vals <- calculate_daily_values(
+#'     positions       = bt$positions,
+#'     daily_prices    = sample_prices_daily,
+#'     strategy_dates  = bt$dates,
+#'     initial_capital = bt$initial_capital,
+#'     cash_values     = bt$cash
+#'   )
+#'
+#'   # Quick sanity checks
+#'   head(vals$dates)
+#'   head(vals$portfolio_values)
+#' }
+#'
+#' @export
+calculate_daily_values <- function(positions,
+                                   daily_prices,
+                                   strategy_dates,
+                                   initial_capital,
+                                   cash_values) {
 
-  # Get all daily dates within strategy period
-  daily_dates <- daily_prices$Date
-  daily_dates <- daily_dates[daily_dates >= min(strategy_dates) &
-                               daily_dates <= max(strategy_dates)]
+  positions    <- data.table::as.data.table(positions)
+  daily_prices <- data.table::as.data.table(daily_prices)
+  data.table::setorder(positions, Date)
+  data.table::setorder(daily_prices, Date)
 
-  n_days <- length(daily_dates)
-  portfolio_values <- numeric(n_days)
-  positions_value <- numeric(n_days)
-  cash_daily <- numeric(n_days)
+  # Symbols taken from positions (backtest output)
+  syms <- setdiff(names(positions), "Date")
 
-  # Convert positions to daily frequency
-  # For each day, find the most recent position from strategy
-  symbol_cols <- setdiff(names(positions), "Date")
+  # Restrict daily window to strategy span and keep only needed symbols
+  dmin <- min(strategy_dates)
+  dmax <- max(strategy_dates)
+  dp   <- daily_prices[Date >= dmin & Date <= dmax, c("Date", syms), with = FALSE]
 
-  cat(sprintf("  Calculating daily values for %d days...\n", n_days))
+  # Carry forward positions to each daily date (roll join on Date)
+  pos_cf <- positions[list(Date = dp$Date), on = "Date", roll = TRUE]
 
-  for (i in seq_len(n_days)) {
-    current_date <- daily_dates[i]
-
-    # Find most recent position date (last rebalance before current date)
-    position_dates <- positions$Date[positions$Date <= current_date]
-    if (length(position_dates) == 0) {
-      # Before first position - all cash
-      portfolio_values[i] <- initial_capital
-      cash_values[i] <- initial_capital
-      positions_value[i] <- 0
-      next
-    }
-
-    last_position_date <- max(position_dates)
-    position_idx <- which(positions$Date == last_position_date)
-
-    # Get shares held on this date
-    current_shares <- unlist(positions[position_idx, symbol_cols, with = FALSE])
-
-    # Get current prices
-    price_idx <- which(daily_prices$Date == current_date)
-    if (length(price_idx) == 0) {
-      # No price data for this date - use previous value
-      if (i > 1) {
-        portfolio_values[i] <- portfolio_values[i-1]
-        positions_value[i] <- positions_value[i-1]
-        cash_values[i] <- cash_values[i-1]
-      }
-      next
-    }
-
-    current_prices <- unlist(daily_prices[price_idx, symbol_cols, with = FALSE])
-
-    # Calculate current value
-    position_values <- current_shares * current_prices
-    total_position_value <- sum(position_values, na.rm = TRUE)
-
-    # Get cash from original backtest
-    cash_idx <- findInterval(current_date, strategy_dates)
-    if (cash_idx == 0) {
-      current_cash <- initial_capital
-    } else {
-      # Get cash from backtest result
-      current_cash <- cash_values[cash_idx]
-    }
-
-    # Total portfolio value
-    portfolio_values[i] <- total_position_value + current_cash
-    positions_value[i] <- total_position_value
-    cash_daily[i] <- current_cash
+  # If there are no positions at all, treat as all-cash every day
+  if (nrow(pos_cf) == 0L) {
+    pos_val     <- rep(0, nrow(dp))
+    cash_series <- rep(initial_capital, nrow(dp))
+    total       <- cash_series
+    return(list(
+      dates            = dp$Date,
+      portfolio_values = total,
+      positions_value  = pos_val,
+      cash             = cash_series
+    ))
   }
 
-  return(list(
-    dates = daily_dates,
-    portfolio_values = portfolio_values,
-    positions_value = positions_value,
-    cash = cash_daily
-  ))
+  # Ensure all symbol columns exist; fill missing with 0 (no position)
+  missing_syms <- setdiff(syms, names(pos_cf))
+  for (s in missing_syms) pos_cf[[s]] <- NA_real_
+  pos_cf[, (syms) := lapply(.SD, function(x) data.table::fifelse(is.na(x), 0, x)),
+         .SDcols = syms]
+
+  # Mark-to-market of positions
+  P <- as.matrix(dp[, ..syms])      # daily prices
+  W <- as.matrix(pos_cf[, ..syms])  # carried-forward positions (shares/notional)
+  pos_val <- rowSums(W * P, na.rm = TRUE)
+
+  # Carry cash to daily dates
+  if (is.null(cash_values)) {
+    cash_series <- rep(0, nrow(dp))
+    first_pos_date <- positions$Date[1L]
+    pre_mask <- dp$Date < first_pos_date
+    if (any(pre_mask)) cash_series[pre_mask] <- initial_capital
+  } else {
+    cash_dt <- data.table::data.table(Date = as.Date(strategy_dates),
+                                      cash = as.numeric(cash_values))
+    data.table::setkey(cash_dt, Date)
+    cash_cf <- cash_dt[list(Date = dp$Date), roll = TRUE]
+    cash_series <- cash_cf$cash
+    if (length(cash_series) && is.na(cash_series[1L])) cash_series[1L] <- initial_capital
+    cash_series[is.na(cash_series)] <- 0
+  }
+
+  total <- pos_val + cash_series
+
+  list(
+    dates            = dp$Date,
+    portfolio_values = total,
+    positions_value  = pos_val,
+    cash             = cash_series
+  )
 }
+
+
 
 ###############################################################################
 # ENHANCED METRICS CALCULATION
@@ -395,20 +408,42 @@ calculate_enhanced_metrics <- function(daily_values, daily_returns,
 # BENCHMARK COMPARISON
 ###############################################################################
 
-#' Analyze Performance Against Benchmark
+#' Benchmark-relative performance statistics
 #'
-#' @description
-#' Calculates benchmark-relative metrics including alpha, beta, tracking
-#' error, information ratio, and correlation.
+#' Computes standard benchmark-relative metrics (e.g., correlation, beta, alpha, tracking error,
+#' information ratio) by aligning portfolio returns with benchmark returns derived from prices.
 #'
-#' @param portfolio_returns Portfolio return series
-#' data("sample_prices_weekly")
-#' @param benchmark_prices Benchmark price data with dates
-#' @param dates Portfolio dates
-#' @param benchmark_symbol Benchmark name for reporting
+#' @param portfolio_returns A numeric vector of portfolio simple returns aligned to \code{dates}.
+#' @param benchmark_prices A data frame (Date + symbols) of adjusted benchmark prices at the
+#'   same cadence as \code{dates}.
+#' @param dates A vector of \code{Date} values used to align \code{portfolio_returns}
+#'   with \code{benchmark_prices}.
+#' @param benchmark_symbol Character scalar giving the column name (symbol) in \code{benchmark_prices}
+#'   to use as the benchmark.
 #'
-#' @return List of benchmark comparison metrics
-#' @keywords internal
+#' @return A list or data frame with benchmark-relative statistics according to the package's
+#'   conventions, including correlation, beta, alpha, tracking error, and information ratio.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, lookback = 12)
+#'   sel10 <- PortfolioTesteR::filter_top_n(mom12, n = 5)
+#'   w_eq  <- PortfolioTesteR::weight_equally(sel10)
+#'   pr    <- PortfolioTesteR::portfolio_returns(w_eq, sample_prices_weekly)
+#'
+#'   # Use SPY as the benchmark
+#'   bench <- sample_prices_weekly[, c("Date", "SPY")]
+#'   res <- analyze_vs_benchmark(
+#'     pr$portfolio_return,
+#'     bench,
+#'     dates = pr$Date,
+#'     benchmark_symbol = "SPY"
+#'   )
+#'   res
+#' }
+#'
+#' @export
 analyze_vs_benchmark <- function(portfolio_returns, benchmark_prices, dates, benchmark_symbol = "SPY") {
   # Compare portfolio performance against benchmark
 
@@ -497,54 +532,116 @@ analyze_vs_benchmark <- function(portfolio_returns, benchmark_prices, dates, ben
   ))
 }
 
-###############################################################################
-# PERIOD-BASED ANALYSIS
-###############################################################################
-analyze_by_period <- function(dates, returns, values) {
-  # Analyze performance by different time periods
-  # Declare all data.table variables to avoid R CMD check NOTEs
-  ret <- year_month <- value <- quarter <- year <- start_value <- end_value <- NULL
+#' Period-level summary statistics
+#'
+#' Aggregates portfolio results by calendar period and computes standard statistics
+#' for each period. Provide at least one of `returns` or `values`.
+#'
+#' @param dates Date vector aligned to `returns` / `values`.
+#' @param returns Numeric simple returns aligned to `dates` (optional).
+#' @param values Numeric equity values aligned to `dates` (optional).
+#' @param period "monthly", "quarterly", or "yearly".
+#' @param na_rm Logical; remove NAs inside per-period aggregations.
+#' @return data.frame with period keys and columns: ret, start_value, end_value, n_obs.
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, lookback = 12)
+#'   sel5  <- PortfolioTesteR::filter_top_n(mom12, n = 5)
+#'   w_eq  <- PortfolioTesteR::weight_equally(sel5)
+#'   pr    <- PortfolioTesteR::portfolio_returns(w_eq, sample_prices_weekly)
+#'   val   <- 1e5 * cumprod(1 + pr$portfolio_return)
+#'   out   <- analyze_by_period(
+#'     dates   = pr$Date,
+#'     returns = pr$portfolio_return,
+#'     values  = val,
+#'     period  = "monthly"
+#'   )
+#'   head(out)
+#' }
+#' @export
+analyze_by_period <- function(dates,
+                              returns = NULL,
+                              values  = NULL,
+                              period  = c("monthly","quarterly","yearly"),
+                              na_rm   = TRUE) {
+  period <- match.arg(period)
+  if (length(dates) == 0L) stop("analyze_by_period: `dates` is empty.")
+  if (is.null(returns) && is.null(values)) {
+    stop("analyze_by_period: provide at least one of `returns` or `values`.")
+  }
 
-  dt <- data.table(
-    date = dates,
-    ret = returns,
-    value = values
+  dt <- data.table::data.table(
+    Date    = as.Date(dates),
+    ret_col = if (!is.null(returns)) as.numeric(returns) else NA_real_,
+    val_col = if (!is.null(values))  as.numeric(values)  else NA_real_
   )
+  has_ret <- !is.null(returns)
+  has_val <- !is.null(values)
 
-  # Monthly analysis
-  dt[, year_month := format(date, "%Y-%m")]
-  monthly <- dt[, .(
-    ret = prod(1 + ret) - 1,
-    start_value = data.table::first(value),
-    end_value = data.table::last(value)
-  ), by = year_month]
+  comp_ret <- function(x) {
+    x <- as.numeric(x); if (na_rm) x <- x[!is.na(x)]
+    if (!length(x)) NA_real_ else prod(1 + x) - 1
+  }
+  first_num <- function(x) {
+    x <- as.numeric(x); i <- which(!is.na(x))[1L]; if (is.na(i)) NA_real_ else x[i]
+  }
+  last_num <- function(x) {
+    x <- as.numeric(x); idx <- which(!is.na(x)); if (!length(idx)) NA_real_ else x[idx[length(idx)]]
+  }
 
-  # Quarterly analysis - use base R instead of lubridate
-  dt[, quarter := paste0(format(date, "%Y"), "-Q", quarters(date))]
-  quarterly <- dt[, .(
-    ret = prod(1 + ret) - 1,
-    start_value = data.table::first(value),
-    end_value = data.table::last(value)
-  ), by = quarter]
+  if (identical(period, "monthly")) {
+    res <- dt[
+      , {
+        r <- .SD[["ret_col"]]; v <- .SD[["val_col"]]
+        list(
+          ret         = if (has_ret) comp_ret(r) else NA_real_,
+          start_value = if (has_val) first_num(v) else NA_real_,
+          end_value   = if (has_val) last_num(v)  else NA_real_,
+          n_obs       = .N
+        )
+      },
+      by = list(Year  = as.integer(format(Date, "%Y")),
+                Month = as.integer(format(Date, "%m"))),
+      .SDcols = c("ret_col","val_col")
+    ]
+  } else if (identical(period, "quarterly")) {
+    res <- dt[
+      , {
+        r <- .SD[["ret_col"]]; v <- .SD[["val_col"]]
+        list(
+          ret         = if (has_ret) comp_ret(r) else NA_real_,
+          start_value = if (has_val) first_num(v) else NA_real_,
+          end_value   = if (has_val) last_num(v)  else NA_real_,
+          n_obs       = .N
+        )
+      },
+      by = list(Year    = as.integer(format(Date, "%Y")),
+                Quarter = ((as.integer(format(Date, "%m")) - 1L) %/% 3L) + 1L),
+      .SDcols = c("ret_col","val_col")
+    ]
+  } else { # yearly
+    res <- dt[
+      , {
+        r <- .SD[["ret_col"]]; v <- .SD[["val_col"]]
+        list(
+          ret         = if (has_ret) comp_ret(r) else NA_real_,
+          start_value = if (has_val) first_num(v) else NA_real_,
+          end_value   = if (has_val) last_num(v)  else NA_real_,
+          n_obs       = .N
+        )
+      },
+      by = list(Year = as.integer(format(Date, "%Y"))),
+      .SDcols = c("ret_col","val_col")
+    ]
+  }
 
-  # Yearly analysis - use base R instead of lubridate
-  dt[, year := format(date, "%Y")]
-  yearly <- dt[, .(
-    ret = prod(1 + ret) - 1,
-    start_value = data.table::first(value),
-    end_value = data.table::last(value)
-  ), by = year]
-
-  return(list(
-    monthly = monthly,
-    quarterly = quarterly,
-    yearly = yearly,
-    best_month = monthly[which.max(monthly$ret)],
-    worst_month = monthly[which.min(monthly$ret)],
-    best_year = yearly[which.max(yearly$ret)],
-    worst_year = yearly[which.min(yearly$ret)]
-  ))
+  out <- as.data.frame(res)
+  rownames(out) <- NULL
+  out
 }
+
+
 #######################
 ###############################################################################
 # RISK METRICS

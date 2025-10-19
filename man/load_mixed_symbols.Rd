@@ -34,7 +34,7 @@ Handles loading regular stocks and VIX together, with VIX loaded
 separately without auto-update to avoid issues.
 }
 \examples{
-\dontshow{if (requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")) withAutoprint(\{ # examplesIf}
 \donttest{
 mixed <- load_mixed_symbols(
   db_path  = "sp500.db",

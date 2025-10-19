@@ -33,7 +33,7 @@ selected <- filter_top_n(momentum, n = 2)
 weights <- weight_equally(selected)
 result <- run_backtest(sample_prices_weekly, weights, initial_capital = 100000)
 
-\dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
 # Download tech stocks (requires internet, skipped on CRAN)
 if (requireNamespace("quantmod", quietly = TRUE)) {
   prices <- yahoo_adapter(

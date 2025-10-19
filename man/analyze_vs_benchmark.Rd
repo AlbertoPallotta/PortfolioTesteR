@@ -2,7 +2,7 @@
 % Please edit documentation in R/performance_analytics.R
 \name{analyze_vs_benchmark}
 \alias{analyze_vs_benchmark}
-\title{Analyze Performance Against Benchmark}
+\title{Benchmark-relative performance statistics}
 \usage{
 analyze_vs_benchmark(
   portfolio_returns,
@@ -12,20 +12,42 @@ analyze_vs_benchmark(
 )
 }
 \arguments{
-\item{portfolio_returns}{Portfolio return series
-data("sample_prices_weekly")}
+\item{portfolio_returns}{A numeric vector of portfolio simple returns aligned to \code{dates}.}
 
-\item{benchmark_prices}{Benchmark price data with dates}
+\item{benchmark_prices}{A data frame (Date + symbols) of adjusted benchmark prices at the
+same cadence as \code{dates}.}
 
-\item{dates}{Portfolio dates}
+\item{dates}{A vector of \code{Date} values used to align \code{portfolio_returns}
+with \code{benchmark_prices}.}
 
-\item{benchmark_symbol}{Benchmark name for reporting}
+\item{benchmark_symbol}{Character scalar giving the column name (symbol) in \code{benchmark_prices}
+to use as the benchmark.}
 }
 \value{
-List of benchmark comparison metrics
+A list or data frame with benchmark-relative statistics according to the package's
+conventions, including correlation, beta, alpha, tracking error, and information ratio.
 }
 \description{
-Calculates benchmark-relative metrics including alpha, beta, tracking
-error, information ratio, and correlation.
+Computes standard benchmark-relative metrics (e.g., correlation, beta, alpha, tracking error,
+information ratio) by aligning portfolio returns with benchmark returns derived from prices.
 }
-\keyword{internal}
+\examples{
+\donttest{
+  data(sample_prices_weekly)
+  mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, lookback = 12)
+  sel10 <- PortfolioTesteR::filter_top_n(mom12, n = 5)
+  w_eq  <- PortfolioTesteR::weight_equally(sel10)
+  pr    <- PortfolioTesteR::portfolio_returns(w_eq, sample_prices_weekly)
+
+  # Use SPY as the benchmark
+  bench <- sample_prices_weekly[, c("Date", "SPY")]
+  res <- analyze_vs_benchmark(
+    pr$portfolio_return,
+    bench,
+    dates = pr$Date,
+    benchmark_symbol = "SPY"
+  )
+  res
+}
+
+}

@@ -6,6 +6,9 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
+%\VignetteIndexEntry{Getting Started with PortfolioTesteR}
+%\VignetteEngine{knitr::rmarkdown}
+%\VignetteEncoding{UTF-8}
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
@@ -392,5 +395,5 @@ summary(res_yh)
 
 If you use PortfolioTesteR in your research, please cite:
 
-> Pallotta, A. (2025). *PortfolioTesteR: Test Investment Strategies with English-Like Code.* R package version 0.1.0. https://github.com/alb3rtazzo/PortfolioTesteR
+> Pallotta, A. (2025). *PortfolioTesteR: Test Investment Strategies with English-Like Code.* R package version 0.1.2. https://github.com/AlbertoPallotta/PortfolioTesteR
 

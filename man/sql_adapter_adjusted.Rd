@@ -36,7 +36,7 @@ data.table with Date column and adjusted prices per symbol
 Loads adjusted stock prices (for splits/dividends) from SQLite.
 }
 \examples{
-\dontshow{if (requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
+\dontshow{if (requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")) withAutoprint(\{ # examplesIf}
 \donttest{
 prices <- sql_adapter_adjusted(
   db_path   = "sp500.db",
