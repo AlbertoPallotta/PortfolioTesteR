@@ -3,7 +3,7 @@
 NULL
 
 # ===========================================
-# R/ml_helper.R  — minimal, general ML helpers
+# R/ml_helper.R  --- minimal, general ML helpers
 # Safe to source from R/ml.R during development
 # ===========================================
 
@@ -81,7 +81,7 @@ ml_panel_op <- function(A, B, op = `*`, how = c("intersect","union"), fill = NA_
 #' Folds a list of panels using `ml_panel_op()` across a set of named panels.
 #'
 #' @param features List of panels (each a wide data frame with `Date`).
-#' @param panels Character vector of names in `features` to reduce (length ≥ 2).
+#' @param panels Character vector of names in `features` to reduce (length \eqn{\ge}{>=} 2).
 #' @param op Binary function to apply elementwise.
 #' @param how Column-set policy passed to [ml_panel_op()].
 #' @param fill Fill value for `how="union"`.
@@ -348,7 +348,7 @@ ml_make_ensemble <- function(..., weights = NULL) {
 #' Deterministic sequence model factory (GRU/LSTM/CNN1D with linear fallback)
 #'
 #' Returns `fit/predict` closures for sequence models that consume flattened
-#' tabular inputs (n × (steps × p)) and internally reshape to (n, steps, p).
+#' tabular inputs (n \eqn{\times}{x} (steps \eqn{\times}{x} p)) and internally reshape to (n, steps, p).
 #' If Keras/TensorFlow is unavailable, falls back to a linear baseline so
 #' examples remain runnable on CPU-only machines.
 #'

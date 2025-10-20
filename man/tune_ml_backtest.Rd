@@ -43,7 +43,7 @@ tune_ml_backtest(
 
 \item{caps}{Exposure caps (e.g., max_per_symbol/max_per_group).}
 
-\item{group_map}{Optional Symbol→Group mapping.}
+\item{group_map}{Optional Symbol->Group mapping.}
 
 \item{cost_bps}{optional one-way cost in basis points for net performance.}
 

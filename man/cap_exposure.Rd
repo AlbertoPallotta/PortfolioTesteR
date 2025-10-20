@@ -45,7 +45,7 @@ cap_exposure(
 
 \item{renormalize_down}{logical; deprecated alias for down-only (kept for compatibility).}
 
-\item{renorm}{logical; deprecated alias — if \code{TRUE} acts like \code{renormalize="both"}.}
+\item{renorm}{logical; deprecated alias --- if \code{TRUE} acts like \code{renormalize="both"}.}
 
 \item{cash_col}{optional character; if provided, set to \code{1 - sum(pmax(w,0))}.}
 

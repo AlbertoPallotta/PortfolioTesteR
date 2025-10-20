@@ -86,7 +86,7 @@ data(sample_prices_daily)
 # A) Momentum (12-week)
 momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 
-# B) Daily volatility → align weekly → invert (low vol = high score)
+# B) Daily volatility -> align weekly -> invert (low vol = high score)
 daily_vol <- calc_rolling_volatility(sample_prices_daily, lookback = 20)
 weekly_vol <- align_to_timeframe(
   high_freq_data = daily_vol,
@@ -165,7 +165,7 @@ plot(result3_no, type = "performance")
 
 ## Strategy 4: Regime-Adaptive Volatility (Advanced)
 
-Detect market **volatility regimes** using SPY’s rolling volatility. Use **defensive** weights in high-vol regimes and **aggressive** weights in low-vol regimes.
+Detect market **volatility regimes** using SPY's rolling volatility. Use **defensive** weights in high-vol regimes and **aggressive** weights in low-vol regimes.
 
 ```{r strategy4}
 # Extract SPY for regime detection
@@ -332,7 +332,7 @@ plot(res_stochrsi, type = "performance")
 ## Optional: Live Data via Yahoo (CRAN-safe)
 
 Below is a minimal example that fetches prices from Yahoo Finance and runs the same
-“calculate → filter → weight → backtest” pipeline. The code is **disabled** inside
+"calculate -> filter -> weight -> backtest" pipeline. The code is **disabled** inside
 CRAN/devtools checks. To run it locally, set `Sys.setenv(RUN_LIVE = "true")` before knitting.
 
 ```{r live_data, eval = identical(Sys.getenv("RUN_LIVE"), "true")}

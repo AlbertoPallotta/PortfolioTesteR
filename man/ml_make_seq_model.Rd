@@ -47,7 +47,7 @@ A list with \verb{$fit} and \verb{$predict} closures.
 }
 \description{
 Returns \code{fit/predict} closures for sequence models that consume flattened
-tabular inputs (n × (steps × p)) and internally reshape to (n, steps, p).
+tabular inputs (n \eqn{\times}{x} (steps \eqn{\times}{x} p)) and internally reshape to (n, steps, p).
 If Keras/TensorFlow is unavailable, falls back to a linear baseline so
 examples remain runnable on CPU-only machines.
 }

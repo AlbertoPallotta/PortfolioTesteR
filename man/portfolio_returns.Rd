@@ -28,7 +28,7 @@ weights to next-period asset returns, optionally net of proportional costs.
 \details{
 \strong{CASH support:} if \code{weights} contains a column named \code{"CASH"} (case-insensitive)
 but \code{prices} has no matching column, a synthetic flat price series is added
-internally (price = 1 ⇒ return = 0). In that case the function does \strong{not}
+internally (price = 1 \eqn{\Rightarrow}{=>} return = 0). In that case the function does \strong{not}
 re-normalise the non-CASH weights; the row is treated as a complete budget
 (symbols + CASH = 1).
 

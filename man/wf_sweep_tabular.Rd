@@ -36,7 +36,7 @@ wf_sweep_tabular(
 
 \item{caps}{Exposure caps (e.g., max_per_symbol/max_per_group).}
 
-\item{group_map}{Optional Symbol→Group mapping for group caps/selection.}
+\item{group_map}{Optional Symbol->Group mapping for group caps/selection.}
 
 \item{freq}{Compounding frequency for annualization (e.g., 52 for weekly).}
 

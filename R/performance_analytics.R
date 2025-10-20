@@ -179,13 +179,13 @@ analyze_performance <- function(backtest_result, daily_prices,
 #' to produce a daily portfolio value series for monitoring and analytics.
 #'
 #' @param positions A `data.frame`/`data.table` of portfolio positions with
-#'   columns `Date` + symbols. Values should be the backtest’s **position
+#'   columns `Date` + symbols. Values should be the backtest's **position
 #'   inventory** per symbol at each rebalance date (typically shares or notional
-#'   units consistent with your backtest’s accounting).
+#'   units consistent with your backtest's accounting).
 #' @param daily_prices A `data.frame`/`data.table` of **daily** prices with
 #'   columns `Date` + the same symbol set present in `positions` (at least the
 #'   intersection).
-#' @param strategy_dates A `Date` vector of the backtest’s decision/rebalance
+#' @param strategy_dates A `Date` vector of the backtest's decision/rebalance
 #'   calendar (e.g., `backtest_result$dates`).
 #' @param initial_capital Numeric scalar. Starting cash used for days **before**
 #'   the first position exists (typically `backtest_result$initial_capital`).

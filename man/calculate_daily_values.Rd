@@ -14,15 +14,15 @@ calculate_daily_values(
 }
 \arguments{
 \item{positions}{A \code{data.frame}/\code{data.table} of portfolio positions with
-columns \code{Date} + symbols. Values should be the backtest’s \strong{position
+columns \code{Date} + symbols. Values should be the backtest's \strong{position
 inventory} per symbol at each rebalance date (typically shares or notional
-units consistent with your backtest’s accounting).}
+units consistent with your backtest's accounting).}
 
 \item{daily_prices}{A \code{data.frame}/\code{data.table} of \strong{daily} prices with
 columns \code{Date} + the same symbol set present in \code{positions} (at least the
 intersection).}
 
-\item{strategy_dates}{A \code{Date} vector of the backtest’s decision/rebalance
+\item{strategy_dates}{A \code{Date} vector of the backtest's decision/rebalance
 calendar (e.g., \code{backtest_result$dates}).}
 
 \item{initial_capital}{Numeric scalar. Starting cash used for days \strong{before}

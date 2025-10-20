@@ -752,7 +752,7 @@ vol_target <- function(weights,
 #' @param allow_short logical; if `FALSE` clamp negatives to 0.
 #' @param renormalize character: one of `"none"`, `"down"`, `"both"`. Default `"none"`.
 #' @param renormalize_down logical; deprecated alias for down-only (kept for compatibility).
-#' @param renorm logical; deprecated alias — if `TRUE` acts like `renormalize="both"`.
+#' @param renorm logical; deprecated alias --- if `TRUE` acts like `renormalize="both"`.
 #' @param cash_col optional character; if provided, set to `1 - sum(pmax(w,0))`.
 #' @param caps optional list; alternative to split args (see Details).
 #'

@@ -9,7 +9,7 @@ ml_panel_reduce(features, panels, op = `*`, how = "intersect", fill = NA_real_)
 \arguments{
 \item{features}{List of panels (each a wide data frame with \code{Date}).}
 
-\item{panels}{Character vector of names in \code{features} to reduce (length ≥ 2).}
+\item{panels}{Character vector of names in \code{features} to reduce (length \eqn{\ge}{>=} 2).}
 
 \item{op}{Binary function to apply elementwise.}
 

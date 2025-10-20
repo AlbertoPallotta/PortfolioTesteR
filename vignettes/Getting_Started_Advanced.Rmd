@@ -60,8 +60,8 @@ tf_autograph_scope <- function() {
 PortfolioTesteR lets you test **ML-based stock selection** with the same workflow you already know:
 
 1) **Prepare** lagged, leakage-safe features + future labels  
-2) **Fit → Predict** on a **rolling IS/OOS schedule**  
-3) **Transform → Select → Weight** the scores  
+2) **Fit -> Predict** on a **rolling IS/OOS schedule**  
+3) **Transform -> Select -> Weight** the scores  
 4) **Backtest** and **inspect diagnostics**
 
 All examples use the bundled weekly/daily datasets; no internet is required.
@@ -191,7 +191,7 @@ plot(res_xgb_sect$backtest, type = "performance")
 
 ---
 
-# 4) Sequence model (GRU, pooled): “returns pyramid”
+# 4) Sequence model (GRU, pooled): "returns pyramid"
 
 **Optional** and disabled by default. Enable locally by running `Sys.setenv(RUN_SEQ = "true")` before knitting, and only if your installation supports sequence models.
 
@@ -232,7 +232,7 @@ res_seq_gru <- ml_backtest_seq(
   weighting       = list(method = "softmax", temperature = 12),
   prices          = sample_prices_weekly,
   initial_capital = 1e5,
-  name            = "Seq-GRU (pooled): returns pyramid (26×3)"
+  name            = "Seq-GRU (pooled): returns pyramid (26x3)"
 )
 
 print(res_seq_gru$backtest)
@@ -277,7 +277,7 @@ res_seq_gru_g <- ml_backtest_seq(
   weighting       = list(method = "softmax", temperature = 12),
   prices          = sample_prices_weekly,
   initial_capital = 1e5,
-  name            = "Seq-GRU (per-sector neutral): returns pyramid (26×3)"
+  name            = "Seq-GRU (per-sector neutral): returns pyramid (26x3)"
 )
 
 print(res_seq_gru_g$backtest)
@@ -288,7 +288,7 @@ plot(res_seq_gru_g$backtest, type = "performance")
 
 # 6) Light tuning: Top-K and softmax temperature
 
-Runs only off‑CRAN (when `NOT_CRAN=true`).
+Runs only off-CRAN (when `NOT_CRAN=true`).
 
 ```{r light_tuning, eval=heavy}
 topk_vals <- c(8L, 10L, 12L, 15L)

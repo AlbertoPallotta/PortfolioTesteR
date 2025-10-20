@@ -1107,7 +1107,7 @@ panel_returns_simple <- function(prices) {
 #'
 #' **CASH support:** if `weights` contains a column named `"CASH"` (case-insensitive)
 #' but `prices` has no matching column, a synthetic flat price series is added
-#' internally (price = 1 ⇒ return = 0). In that case the function does **not**
+#' internally (price = 1 \eqn{\Rightarrow}{=>} return = 0). In that case the function does **not**
 #' re-normalise the non-CASH weights; the row is treated as a complete budget
 #' (symbols + CASH = 1).
 #'
@@ -1160,7 +1160,7 @@ portfolio_returns <- function(weights, prices, cost_bps = 0) {
 
   # If CASH present in weights but missing in prices, synthesize a flat price
   if (has_cash_in_w && !(cash_col %in% p_syms)) {
-    P[, (cash_col) := 1]  # flat price ⇒ 0 simple return
+    P[, (cash_col) := 1]  # flat price \eqn{\Rightarrow}{=>} 0 simple return
     p_syms <- c(p_syms, cash_col)
   }
 
@@ -1249,7 +1249,7 @@ perf_metrics <- function(ret_dt, freq = 52) {
 #' @param selection_defaults Default selection settings (e.g., top_k).
 #' @param weighting_defaults Default weighting settings (e.g., method, temperature).
 #' @param caps Exposure caps (e.g., max_per_symbol/max_per_group).
-#' @param group_map Optional Symbol→Group mapping.
+#' @param group_map Optional Symbol->Group mapping.
 #' @return data.table with metrics per grid row.
 #' @export
 tune_ml_backtest <- function(features_list, labels, prices,
@@ -2006,7 +2006,7 @@ cv_tune_seq <- function(features_list, labels,
 #' @param schedule List with elements is, oos, step.
 #' @param grid Named list of parameter vectors to sweep (e.g., top_k, temperature, method, transform).
 #' @param caps Exposure caps (e.g., max_per_symbol/max_per_group).
-#' @param group_map Optional Symbol→Group mapping for group caps/selection.
+#' @param group_map Optional Symbol->Group mapping for group caps/selection.
 #' @param freq Compounding frequency for annualization (e.g., 52 for weekly).
 #' @param cost_bps One-way trading cost in basis points (applied on rebalance).
 #' @param ic_method IC method ('spearman' or 'pearson').

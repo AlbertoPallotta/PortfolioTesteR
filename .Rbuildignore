@@ -18,10 +18,11 @@
 ^\.vscode$              # editor folders
 ^\.DS_Store$            # macOS cruft
 
-
 ^CRAN-SUBMISSION$
 cran-comments.md
 ^^doc$$
-^^inst/doc$$
 ^^README\\.html$$
 ^^README_files$$
+^README\.html$
+^README_files$
+^file.*\.pdf$
