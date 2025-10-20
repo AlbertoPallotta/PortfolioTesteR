@@ -7,8 +7,17 @@
 join_panels(panels)
 }
 \arguments{
-\item{panels}{list of wide panels \code{Date + symbols}.}
+\item{panels}{List of wide panels (\code{data.frame} or \code{data.table}), each with columns \code{Date} + symbols.}
+}
+\value{
+A \code{data.table} with \code{Date} plus the union of all symbol columns, restricted to common dates.
 }
 \description{
-Join multiple panels on intersecting dates (unique symbol names)
+Align and join a list of wide panels on their common dates. Each input
+panel must have one \code{Date} column and a disjoint set of symbol columns.
+}
+\details{
+All panels are first aligned to the intersection of their \code{Date} values.
+Symbol names must be unique across panels; if the same symbol appears in
+multiple inputs, an error is raised.
 }

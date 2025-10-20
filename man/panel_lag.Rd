@@ -2,15 +2,24 @@
 % Please edit documentation in R/ml.R
 \name{panel_lag}
 \alias{panel_lag}
-\title{Lag all symbol columns by k}
+\title{Lag each symbol column by k steps}
 \usage{
 panel_lag(df, k = 1L)
 }
 \arguments{
-\item{df}{wide panel with \code{Date + symbols}.}
+\item{df}{data.frame or data.table with columns \code{Date} then symbols.}
 
-\item{k}{integer lag.}
+\item{k}{Integer lag (>= 1).}
+}
+\value{
+A \code{data.table} with the same columns as \code{df}, lagged by \code{k}.
 }
 \description{
-Lag all symbol columns by k
+Given a wide panel with a \code{Date} column followed by symbol columns, returns
+the same shape with each symbol column lagged by \code{k} periods. The \code{Date}
+column is preserved; leading values introduced by the lag are \code{NA_real_}.
+}
+\examples{
+x <- data.frame(Date = as.Date("2020-01-01") + 0:2, A = 1:3, B = 11:13)
+panel_lag(x, 1L)
 }

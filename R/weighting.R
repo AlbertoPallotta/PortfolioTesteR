@@ -1762,45 +1762,41 @@ calculate_cluster_variance_optimized <- function(cov_matrix, asset_names) {
 #'
 #' Collection of risk-based weighting methods for portfolio construction.
 #' Each method allocates capital based on risk characteristics rather than
-#' market capitalization or arbitrary equal weights.
+#' market capitalization or equal weights.
 #'
-#' @param selected_df Binary selection matrix (data.frame with Date column)
-#' @param prices_df Price data for risk calculations (typically daily)
-#'                  Returns are calculated internally from prices
-#' @param lookback_periods Number of periods for risk estimation (default: 252)
-#' @param min_periods Minimum periods required (default: 60)
-#' @param method Optimization method for risk parity
+#' @param selected_df Binary selection matrix (data.frame with Date column).
+#' @param prices_df Price data for risk calculations (typically daily).
+#'   Returns are calculated internally from prices.
+#' @param lookback_periods Number of periods for risk estimation (default: 252).
+#' @param min_periods Minimum periods required (default: 60).
+#' @param method Optimization method for risk parity.
+#'
 #' @details
-#' Methods:
-#' - inverse_vol: Weight inversely to volatility (1/'). Lower volatility
-#'                stocks receive higher weights. Simple but effective.
-#' - equal_risk: Equal Risk Contribution (ERC). Each position contributes
-#'               equally to total portfolio risk. Uses iterative optimization.
-#' - max_div: Maximum Diversification Portfolio. Maximizes the ratio of
-#'            weighted average volatility to portfolio volatility.
+#' \strong{Methods}
+#' \describe{
+#'   \item{\code{inverse_vol}}{Weights proportional to 1 / volatility
+#'     (e.g., 1 / sd of returns over \code{lookback_periods}). Lower volatility
+#'     stocks receive higher weights.}
+#'   \item{\code{equal_risk}}{Equal Risk Contribution (ERC): finds weights so
+#'     each position contributes equally to total portfolio risk (iterative optimization).}
+#'   \item{\code{max_div}}{Maximum Diversification: maximizes the ratio of
+#'     weighted average volatility to portfolio volatility.}
+#' }
 #'
 #' The function accepts price data and calculates returns internally,
 #' ensuring consistency with other library functions. Daily prices are
 #' recommended for accurate volatility estimation.
 #'
-#' @return Weight matrix with same dates as selected_df, rows sum to 1
-#'
+#' @return Weight matrix with the same dates as \code{selected_df}; each row sums to 1.
 #' @export
 #' @examples
 #' data("sample_prices_daily")
 #' data("sample_prices_weekly")
-#' # Create a selection first
 #' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
 #' selected <- filter_top_n(momentum, n = 10)
-#'
-#' # Simple inverse volatility weighting
-#' weights <- weight_by_risk_parity(selected, sample_prices_daily, method = "inverse_vol")
-#'
-#' # Equal Risk Contribution for balanced exposure
-#' weights <- weight_by_risk_parity(selected, sample_prices_daily, method = "equal_risk")
-#'
-#' # Maximum Diversification Portfolio
-#' weights <- weight_by_risk_parity(selected, sample_prices_daily, method = "max_div")
+#' weight_by_risk_parity(selected, sample_prices_daily, method = "inverse_vol")
+#' weight_by_risk_parity(selected, sample_prices_daily, method = "equal_risk")
+#' weight_by_risk_parity(selected, sample_prices_daily, method = "max_div")
 weight_by_risk_parity <- function(selected_df, prices_df,  # Changed from returns_df
                                   method = c("inverse_vol", "equal_risk", "max_div"),
                                   lookback_periods = 252,

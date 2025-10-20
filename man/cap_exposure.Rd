@@ -45,17 +45,17 @@ cap_exposure(
 
 \item{renormalize_down}{logical; deprecated alias for down-only (kept for compatibility).}
 
-\item{renorm}{logical; deprecated alias --- if \code{TRUE} acts like \code{renormalize="both"}.}
+\item{renorm}{logical; deprecated alias; if \code{TRUE} acts like \code{renormalize="both"}.}
 
 \item{cash_col}{optional character; if provided, set to \code{1 - sum(pmax(w,0))}.}
 
-\item{caps}{optional list; alternative to split args (see Details).}
+\item{caps}{optional list; alternative to split args (see details above).}
 }
 \value{
 data.table of capped (and optionally renormalized) weights.
 }
 \description{
-Row-wise caps on a wide weights table (\code{Date + symbols}):
+Row-wise caps on a wide weights table (\code{Date} + symbols):
 \enumerate{
 \item per-symbol cap (\code{max_per_symbol})
 \item optional per-group cap (\code{max_per_group}) using \code{group_map}
@@ -64,16 +64,20 @@ Row-wise caps on a wide weights table (\code{Date + symbols}):
 \details{
 Negatives are clamped to 0 unless \code{allow_short = TRUE}.
 
-Renormalization:
+Renormalization options:
 \itemize{
 \item \code{renormalize = "none"}: leave gross (sum of positive weights) as is.
 \item \code{renormalize = "down"}: if gross > 1, scale down so gross == 1.
 \item \code{renormalize = "both"}: if 0 < gross != 1, scale so gross == 1.
 }
 
-Back-compat:
-\itemize{
-\item \code{renorm} (logical) is a deprecated alias; \code{TRUE} behaves like \code{renormalize="both"}.
-\item The \code{caps} list form is supported: \code{caps = list(max_per_symbol=..., max_per_group=..., group_map=...)}.
+The argument \code{renorm} (logical) is a deprecated alias;
+\code{TRUE} behaves like \code{renormalize = "both"}.
+
+The \code{caps} list form is supported:
+\describe{
+\item{max_per_symbol}{Maximum absolute weight per symbol (0-1).}
+\item{max_per_group}{Maximum gross weight per group (0-1).}
+\item{group_map}{Named character vector mapping \code{symbol -> group}.}
 }
 }

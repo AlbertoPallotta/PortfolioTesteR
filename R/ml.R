@@ -15,7 +15,18 @@ utils::globalVariables(c("Date"))
 }
 
 #' Join multiple panels on intersecting dates (unique symbol names)
-#' @param panels list of wide panels `Date + symbols`.
+#'
+#' Align and join a list of wide panels on their common dates. Each input
+#' panel must have one \code{Date} column and a disjoint set of symbol columns.
+#'
+#' @details
+#' All panels are first aligned to the intersection of their \code{Date} values.
+#' Symbol names must be unique across panels; if the same symbol appears in
+#' multiple inputs, an error is raised.
+#'
+#' @param panels List of wide panels (\code{data.frame} or \code{data.table}), each with columns \code{Date} + symbols.
+#'
+#' @return A \code{data.table} with \code{Date} plus the union of all symbol columns, restricted to common dates.
 #' @export
 join_panels <- function(panels) {
   stopifnot(is.list(panels), length(panels) >= 1)
@@ -33,10 +44,20 @@ join_panels <- function(panels) {
   out
 }
 
-#' Lag all symbol columns by k
-#' @param df wide panel with `Date + symbols`.
-#' @param k integer lag.
+#' Lag each symbol column by k steps
+#'
+#' Given a wide panel with a `Date` column followed by symbol columns, returns
+#' the same shape with each symbol column lagged by `k` periods. The `Date`
+#' column is preserved; leading values introduced by the lag are `NA_real_`.
+#'
+#' @param df data.frame or data.table with columns `Date` then symbols.
+#' @param k Integer lag (>= 1).
+#'
+#' @return A `data.table` with the same columns as `df`, lagged by `k`.
 #' @export
+#' @examples
+#' x <- data.frame(Date = as.Date("2020-01-01") + 0:2, A = 1:3, B = 11:13)
+#' panel_lag(x, 1L)
 panel_lag <- function(df, k = 1L) {
   dt <- if (data.table::is.data.table(df)) data.table::copy(df) else data.table::as.data.table(df)
   if (!"Date" %in% names(dt)) stop("'df' must have a Date column")
@@ -52,10 +73,24 @@ panel_lag <- function(df, k = 1L) {
 }
 
 
-#' Make future-return labels aligned to decision date
-#' @param prices price panel.
-#' @param horizon forward steps for the label.
-#' @param type `"log"`, `"simple"`, `"sign"`.
+#' Make future-return labels aligned to the decision date
+#'
+#' Compute forward returns over a fixed horizon and align them to the decision date.
+#'
+#' @details
+#' For each date \eqn{t}, the label is computed from prices at \eqn{t} and \eqn{t + h}.
+#' \itemize{
+#'   \item \code{type = "simple"}: \eqn{p_{t+h}/p_t - 1}
+#'   \item \code{type = "log"}: \eqn{\log(p_{t+h}) - \log(p_t)}
+#'   \item \code{type = "sign"}: \code{sign(simple return)}
+#' }
+#' Trailing dates that do not have \code{horizon} steps ahead are set to \code{NA}.
+#'
+#' @param prices Wide price panel (\code{Date} + symbols).
+#' @param horizon Integer \code{>= 1}, number of forward steps for the label.
+#' @param type Character, one of \code{"log"}, \code{"simple"}, \code{"sign"}.
+#'
+#' @return A \code{data.table} with \code{Date} + symbols containing the labels.
 #' @export
 make_labels <- function(prices, horizon = 4L, type = c("log","simple","sign")) {
   type <- match.arg(type)
@@ -478,15 +513,25 @@ filter_by_metric <- function(metric_df, op = c("below","above","between"),
 
 
 
-# ==== ENSEMBLES =============================================================
-# ==== ENSEMBLES =============================================================
-
-#' Combine multiple score panels (mean/weighted/rank-average/trimmed)
-#' @param scores_list list of score panels.
-#' @param method combination method.
-#' @param scores_list List of wide score panels to combine.
-#' @param weights Optional numeric weights for method='weighted'.
-#' @param trim Trim fraction for method='trimmed_mean'.
+#' Combine multiple score panels (mean / weighted / rank-average / trimmed)
+#'
+#' Combine several wide score panels (`Date` + symbols) into a single panel
+#' by applying one of several aggregation methods.
+#'
+#' @details
+#' \itemize{
+#'   \item \code{method = "mean"}: simple column-wise mean across panels.
+#'   \item \code{method = "weighted"}: weighted mean; see \code{weights}.
+#'   \item \code{method = "rank_avg"}: average of within-date normalized ranks.
+#'   \item \code{method = "trimmed_mean"}: mean with \code{trim} fraction removed at both tails.
+#' }
+#'
+#' @param scores_list List of wide score panels to combine (each has columns \code{Date} + symbols).
+#' @param method Character, one of \code{"mean"}, \code{"weighted"}, \code{"rank_avg"}, \code{"trimmed_mean"}.
+#' @param weights Optional numeric vector of length equal to \code{length(scores_list)}; used only when \code{method = "weighted"}.
+#' @param trim Numeric in \code{[0, 0.5)}; fraction to trim from each tail for \code{method = "trimmed_mean"}.
+#'
+#' @return A \code{data.table} with columns \code{Date} + symbols, containing the combined scores.
 #' @export
 combine_scores <- function(scores_list,
                            method = c("mean","weighted","rank_avg","trimmed_mean"),
@@ -580,11 +625,25 @@ cap_turnover <- function(weights, max_turnover = 0.2) {
 
 
 
-
-#' Validate or synthesize a group map
-#' @param symbols character vector of symbols.
-#' @param group_map `data.frame(Symbol, Group)`.
+#' Validate a symbol-to-group mapping
+#'
+#' Normalizes and checks a symbol → group mapping for a given set of symbols.
+#' Accepts either a data.frame/data.table with columns `Symbol` and `Group`,
+#' or a named character vector `c(symbol = "group", ...)`.
+#' Errors if any requested symbol is missing or mapped more than once.
+#'
+#' @param symbols Character vector of symbols to validate/keep.
+#' @param group_map Data frame/data.table with columns `Symbol`,`Group`,
+#'   or a named character vector mapping `symbol -> group`.
+#'
+#' @return A two-column `data.frame` with columns `Symbol` and `Group`
+#'   (one row per symbol), sorted by `Symbol`.
 #' @export
+#' @examples
+#' validate_group_map(
+#'   c("A","B"),
+#'   data.frame(Symbol = c("A","B"), Group = c("G1","G1"))
+#' )
 validate_group_map <- function(symbols, group_map) {
   if (is.null(group_map)) stop("group_map is NULL")
   GM <- if (data.table::is.data.table(group_map)) data.table::copy(group_map) else data.table::as.data.table(group_map)
@@ -793,44 +852,65 @@ ml_backtest <- function(features_list,
   list(scores = S, mask = mask, weights = W, backtest = BT)
 }
 
-
-# -------------------------------------------------------------------
-# ADD IF MISSING: grouped top-k selector with per-group cap
-# -------------------------------------------------------------------
-#' Select top-K per date with group caps
-#' @param group_map data.frame with `Symbol, Group`.
-#' @param max_per_group integer; max picks per group per date.
-#' @inheritParams select_top_k_scores
+#' Select top-k symbols per group by score
+#'
+#' @description
+#' For each date, choose the top `k` symbols **within each group** based on a
+#' score panel. Returns a logical selection panel aligned to the input.
+#'
+#' @details
+#' \itemize{
+#'   \item Group membership comes from `group_map` (symbol -> group).
+#'   \item Selection is computed independently by group on each date.
+#'   \item Ties follow the ordering implied by `order(..., method = "radix")`.
+#' }
+#'
+#' @param scores Wide score panel (`Date` + symbols).
+#' @param k Positive integer: number of symbols to select per group.
+#' @param group_map Named character vector or 2-column data.frame
+#'   (`symbol`, `group`) mapping symbols to groups.
+#' @param max_per_group Integer cap per group (default `3L`).
+#'
+#' @return Logical selection panel (`Date` + symbols) where `TRUE` marks
+#'         selected symbols.
+#' @examples
+#' set.seed(42)
+#' scores <- data.frame(
+#'   Date = as.Date("2020-01-01") + 0:1,
+#'   A = runif(2), B = runif(2), C = runif(2), D = runif(2), E = runif(2), F = runif(2)
+#' )
+#' gmap <- data.frame(Symbol = c("A","B","C","D","E","F"),
+#'                    Group  = c("G1","G1","G2","G2","G3","G3"))
+#' sel <- select_top_k_scores_by_group(scores, k = 4, group_map = gmap, max_per_group = 2)
+#' head(sel)
 #' @export
 select_top_k_scores_by_group <- function(scores, k, group_map, max_per_group = 3L) {
   S <- if (data.table::is.data.table(scores)) data.table::copy(scores) else data.table::as.data.table(scores)
-  stopifnot(all(c("Symbol","Group") %in% names(group_map)))
-  gmap <- data.table::as.data.table(group_map)
-
   syms <- setdiff(names(S), "Date")
-  out  <- data.table::data.table(Date = S$Date)
+
+  # Normalize map: returns data.frame with columns Symbol, Group
+  GM <- validate_group_map(syms, group_map)
+  sym2grp <- setNames(GM$Group, GM$Symbol)
+  groups  <- unique(GM$Group)
+
+  out <- data.table::data.table(Date = S$Date)
   for (nm in syms) out[[nm]] <- FALSE
 
-  # build group lookup
-  sym2grp <- gmap$Group; names(sym2grp) <- gmap$Symbol
-
   for (r in seq_len(nrow(S))) {
-    v  <- as.numeric(S[r, ..syms]); names(v) <- syms
+    v  <- as.numeric(S[r, ..syms])
     ok <- which(is.finite(v))
     if (!length(ok)) next
 
-    ord <- order(v[ok], decreasing = TRUE, method = "radix")
+    ord <- ok[order(v[ok], decreasing = TRUE, method = "radix")]
     picked <- character(0)
-    grp_ct <- list()
+    grp_ct <- setNames(integer(length(groups)), groups)
 
-    for (j in ok[ord]) {
-      s   <- syms[j]
-      grp <- sym2grp[[s]]
-      if (is.null(grp)) next
-      cnt <- grp_ct[[grp]] %||% 0L
-      if (cnt < max_per_group) {
+    for (j in ord) {
+      s <- syms[j]; g <- sym2grp[[s]]
+      if (is.null(g) || is.na(g)) next
+      if (grp_ct[g] < max_per_group) {
         picked <- c(picked, s)
-        grp_ct[[grp]] <- cnt + 1L
+        grp_ct[g] <- grp_ct[g] + 1L
         if (length(picked) >= k) break
       }
     }
@@ -838,6 +918,7 @@ select_top_k_scores_by_group <- function(scores, k, group_map, max_per_group = 3
   }
   out
 }
+
 
 
 # ==== Score diagnostics (robust alignment) ===================================
@@ -977,9 +1058,19 @@ bucket_returns <- function(scores, labels, n_buckets = 10L, label_type = c("log"
   out
 }
 
-#' Rolling IC mean / sd / ICIR
-#' @param ic_dt output of [ic_series()].
-#' @param window rolling window length.
+#' Rolling IC mean, standard deviation, and ICIR
+#'
+#' Compute rolling information coefficient (IC) statistics from a per-date IC series.
+#'
+#' @details
+#' For each rolling window, compute the mean IC, the standard deviation of IC,
+#' and the information coefficient ratio (ICIR = mean / sd). Windows with fewer
+#' than two finite IC values yield \code{NA} for ICIR.
+#'
+#' @param ic_dt Data frame/data.table produced by \code{\link{ic_series}} with columns \code{Date} and \code{IC}.
+#' @param window Integer window length for the rolling statistics.
+#'
+#' @return A \code{data.table} with columns \code{Date}, \code{IC_mean}, \code{IC_sd}, and \code{ICIR}.
 #' @export
 roll_ic_stats <- function(ic_dt, window = 26L) {
   stopifnot(all(c("Date","IC") %in% names(ic_dt)))
@@ -992,41 +1083,6 @@ roll_ic_stats <- function(ic_dt, window = 26L) {
 
 
 # ==== Group-aware selection ===================================================
-
-# Select top-K by score with a per-group maximum number of names per date.
-# group_map: data.table/data.frame with columns Symbol, Group (one group per symbol).
-select_top_k_scores_by_group <- function(scores, k, group_map, max_per_group) {
-  S <- if (data.table::is.data.table(scores)) data.table::copy(scores) else data.table::as.data.table(scores)
-  syms <- setdiff(names(S), "Date")
-
-  GM <- validate_group_map(syms, group_map)
-  sym2grp <- setNames(GM$Group, GM$Symbol)
-  groups  <- unique(GM$Group)
-
-  out <- data.table::data.table(Date = S$Date)
-  for (nm in syms) out[[nm]] <- FALSE
-
-  for (r in seq_len(nrow(S))) {
-    v  <- as.numeric(S[r, ..syms]); ok <- which(is.finite(v))
-    if (!length(ok)) next
-    ord <- ok[order(v[ok], decreasing = TRUE, method = "radix")]
-
-    take <- character(0)
-    grp_ct <- setNames(integer(length(groups)), groups)
-
-    for (j in ord) {
-      s <- syms[j]
-      g <- sym2grp[[s]]
-      if (grp_ct[g] < max_per_group) {
-        take <- c(take, s)
-        grp_ct[g] <- grp_ct[g] + 1L
-        if (length(take) >= k) break
-      }
-    }
-    if (length(take)) for (s in take) out[[s]][r] <- TRUE
-  }
-  out
-}
 
 
 

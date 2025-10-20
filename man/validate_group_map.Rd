@@ -2,15 +2,29 @@
 % Please edit documentation in R/ml.R
 \name{validate_group_map}
 \alias{validate_group_map}
-\title{Validate or synthesize a group map}
+\title{Validate a symbol-to-group mapping}
 \usage{
 validate_group_map(symbols, group_map)
 }
 \arguments{
-\item{symbols}{character vector of symbols.}
+\item{symbols}{Character vector of symbols to validate/keep.}
 
-\item{group_map}{\code{data.frame(Symbol, Group)}.}
+\item{group_map}{Data frame/data.table with columns \code{Symbol},\code{Group},
+or a named character vector mapping \code{symbol -> group}.}
+}
+\value{
+A two-column \code{data.frame} with columns \code{Symbol} and \code{Group}
+(one row per symbol), sorted by \code{Symbol}.
 }
 \description{
-Validate or synthesize a group map
+Normalizes and checks a symbol → group mapping for a given set of symbols.
+Accepts either a data.frame/data.table with columns \code{Symbol} and \code{Group},
+or a named character vector \code{c(symbol = "group", ...)}.
+Errors if any requested symbol is missing or mapped more than once.
+}
+\examples{
+validate_group_map(
+  c("A","B"),
+  data.frame(Symbol = c("A","B"), Group = c("G1","G1"))
+)
 }

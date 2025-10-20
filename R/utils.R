@@ -730,20 +730,30 @@ vol_target <- function(weights,
 
 #' Cap per-symbol and per-group exposures, with optional renormalization
 #'
-#' Row-wise caps on a wide weights table (`Date + symbols`):
-#'   1) per-symbol cap (`max_per_symbol`)
-#'   2) optional per-group cap (`max_per_group`) using `group_map`
+#' Row-wise caps on a wide weights table (`Date` + symbols):
+#' \enumerate{
+#'   \item per-symbol cap (`max_per_symbol`)
+#'   \item optional per-group cap (`max_per_group`) using `group_map`
+#' }
 #'
 #' Negatives are clamped to 0 unless `allow_short = TRUE`.
 #'
-#' Renormalization:
-#' - `renormalize = "none"`: leave gross (sum of positive weights) as is.
-#' - `renormalize = "down"`: if gross > 1, scale down so gross == 1.
-#' - `renormalize = "both"`: if 0 < gross != 1, scale so gross == 1.
+#' Renormalization options:
+#' \itemize{
+#'   \item \code{renormalize = "none"}: leave gross (sum of positive weights) as is.
+#'   \item \code{renormalize = "down"}: if gross > 1, scale down so gross == 1.
+#'   \item \code{renormalize = "both"}: if 0 < gross != 1, scale so gross == 1.
+#' }
 #'
-#' Back-compat:
-#' - `renorm` (logical) is a deprecated alias; `TRUE` behaves like `renormalize="both"`.
-#' - The `caps` list form is supported: `caps = list(max_per_symbol=..., max_per_group=..., group_map=...)`.
+#' The argument \code{renorm} (logical) is a deprecated alias;
+#' \code{TRUE} behaves like \code{renormalize = "both"}.
+#'
+#' The \code{caps} list form is supported:
+#' \describe{
+#'   \item{max_per_symbol}{Maximum absolute weight per symbol (0-1).}
+#'   \item{max_per_group}{Maximum gross weight per group (0-1).}
+#'   \item{group_map}{Named character vector mapping \code{symbol -> group}.}
+#' }
 #'
 #' @param weights data.frame/data.table: columns `Date`, then symbols.
 #' @param max_per_symbol numeric scalar or named vector (absolute cap per symbol).
@@ -752,10 +762,9 @@ vol_target <- function(weights,
 #' @param allow_short logical; if `FALSE` clamp negatives to 0.
 #' @param renormalize character: one of `"none"`, `"down"`, `"both"`. Default `"none"`.
 #' @param renormalize_down logical; deprecated alias for down-only (kept for compatibility).
-#' @param renorm logical; deprecated alias --- if `TRUE` acts like `renormalize="both"`.
+#' @param renorm logical; deprecated alias; if `TRUE` acts like `renormalize="both"`.
 #' @param cash_col optional character; if provided, set to `1 - sum(pmax(w,0))`.
-#' @param caps optional list; alternative to split args (see Details).
-#'
+#' @param caps optional list; alternative to split args (see details above).
 #' @return data.table of capped (and optionally renormalized) weights.
 #' @export
 cap_exposure <- function(weights,

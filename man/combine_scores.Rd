@@ -2,7 +2,7 @@
 % Please edit documentation in R/ml.R
 \name{combine_scores}
 \alias{combine_scores}
-\title{Combine multiple score panels (mean/weighted/rank-average/trimmed)}
+\title{Combine multiple score panels (mean / weighted / rank-average / trimmed)}
 \usage{
 combine_scores(
   scores_list,
@@ -12,14 +12,26 @@ combine_scores(
 )
 }
 \arguments{
-\item{scores_list}{List of wide score panels to combine.}
+\item{scores_list}{List of wide score panels to combine (each has columns \code{Date} + symbols).}
 
-\item{method}{combination method.}
+\item{method}{Character, one of \code{"mean"}, \code{"weighted"}, \code{"rank_avg"}, \code{"trimmed_mean"}.}
 
-\item{weights}{Optional numeric weights for method='weighted'.}
+\item{weights}{Optional numeric vector of length equal to \code{length(scores_list)}; used only when \code{method = "weighted"}.}
 
-\item{trim}{Trim fraction for method='trimmed_mean'.}
+\item{trim}{Numeric in \code{[0, 0.5)}; fraction to trim from each tail for \code{method = "trimmed_mean"}.}
+}
+\value{
+A \code{data.table} with columns \code{Date} + symbols, containing the combined scores.
 }
 \description{
-Combine multiple score panels (mean/weighted/rank-average/trimmed)
+Combine several wide score panels (\code{Date} + symbols) into a single panel
+by applying one of several aggregation methods.
+}
+\details{
+\itemize{
+\item \code{method = "mean"}: simple column-wise mean across panels.
+\item \code{method = "weighted"}: weighted mean; see \code{weights}.
+\item \code{method = "rank_avg"}: average of within-date normalized ranks.
+\item \code{method = "trimmed_mean"}: mean with \code{trim} fraction removed at both tails.
+}
 }
