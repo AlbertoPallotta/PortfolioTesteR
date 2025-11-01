@@ -6,9 +6,6 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-%\VignetteIndexEntry{Optimization and Walk-Forward with PortfolioTesteR}
-%\VignetteEngine{knitr::rmarkdown}
-%\VignetteEncoding{UTF-8}
 
 ```{r}
 knitr::opts_chunk$set(collapse=TRUE, comment="#>", fig.width=7, fig.height=5, dpi=96, cache=FALSE, message=FALSE, warning=FALSE)

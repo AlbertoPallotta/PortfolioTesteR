@@ -531,3 +531,437 @@ ml_plot_ic_roll <- function(scores_dt, labels_dt, window = 26L, method = "spearm
   invisible(ris)
 }
 
+
+
+#' Run multi-horizon ML backtests (pooled or sector-neutral)
+#'
+#' Convenience wrapper around [PortfolioTesteR::ml_backtest()] that repeats the
+#' same specification across multiple horizons, returning a named list of
+#' backtest objects keyed as `"H1w"`, `"H4w"`, `"H13w"`, etc.
+#'
+#' @param features_list Named list of data.tables with factor scores (each with a
+#'   `Date` column and one column per symbol). Typically from
+#'   [PortfolioTesteR::ml_prepare_features()].
+#' @param prices_weekly Wide price table (weekly) with `Date` + one column per
+#'   symbol (adjusted prices). Used both to create labels and run the backtest.
+#' @param horizons Integer vector of horizons in *weeks* (e.g., `c(1L,4L,13L)`).
+#' @param fit_fn,predict_fn Model fit/predict closures as returned by
+#'   [PortfolioTesteR::ml_make_model()].
+#' @param schedule Walk-forward schedule list with elements `is`, `oos`, `step`.
+#' @param transform Feature transform (default `"zscore"`). Passed to
+#'   [PortfolioTesteR::ml_backtest()].
+#' @param selection List describing selection rules (e.g., `list(top_k=20L, max_per_group=3L)`).
+#' @param weighting List describing weighting rules (e.g., `list(method="softmax", temperature=12)`).
+#' @param caps List with exposure caps (e.g., `list(max_per_symbol=0.10, max_per_group=NULL)`).
+#' @param group_mode `"pooled"` or `"per_group"`. If `"per_group"`, you must pass `group_map`.
+#' @param group_map A two-column table with columns `Symbol` and `Group` defining
+#'   the grouping (e.g., sectors) for `"per_group"` mode.
+#' @param initial_capital Numeric. Starting capital for the backtest (default `1e5`).
+#' @param name_prefix Optional string prefixed to each backtest title.
+#' @param seed Optional integer. If provided, the same seed is set before each
+#'   horizon’s backtest call to ensure deterministic tie-breaks.
+#' @param ... Additional arguments forwarded to [PortfolioTesteR::ml_backtest()]
+#'   (kept for future extensibility; no effect if unused).
+#'
+#' @return A named list of backtest objects (as returned by
+#'   [PortfolioTesteR::ml_backtest()]), with names like `"H1w"`, `"H4w"`, … .
+#'
+#' @details
+#' This function does **not** change core behavior; it only removes boilerplate
+#' when running identical specs across horizons and (optionally) grouping
+#' regimes. It preserves all defaults you pass for selection, weighting,
+#' transforms, caps, and schedule.
+#'
+#' @examples
+#' \donttest{
+#' library(PortfolioTesteR)
+#' data(sample_prices_weekly, package = "PortfolioTesteR")
+#'
+#' # Minimal features for the example
+#' X <- ml_prepare_features(
+#'   prices_weekly = sample_prices_weekly,
+#'   include = c("mom12","mom26")
+#' )
+#'
+#' # Simple deterministic model
+#' model <- ml_make_model("linear")
+#' sched <- list(is = 156L, oos = 4L, step = 4L)
+#'
+#' set.seed(42)
+#' bt_list <- ml_backtest_multi(
+#'   features_list = X,
+#'   prices_weekly = sample_prices_weekly,
+#'   horizons = c(1L, 4L),
+#'   fit_fn = model$fit,
+#'   predict_fn = model$predict,
+#'   schedule = sched,
+#'   selection = list(top_k = 5L),
+#'   weighting = list(method = "softmax", temperature = 12),
+#'   caps = list(max_per_symbol = 0.10),
+#'   group_mode = "pooled",
+#'   name_prefix = "Demo ",
+#'   seed = 42
+#' )
+#'
+#' names(bt_list)   # "H1w" "H4w"
+#' }
+#'
+#' @export
+ml_backtest_multi <- function(features_list, prices_weekly, horizons,
+                              fit_fn, predict_fn, schedule,
+                              transform = "zscore",
+                              selection = list(top_k = 20L),
+                              weighting = list(method = "softmax", temperature = 12),
+                              caps = list(max_per_symbol = 0.10),
+                              group_mode = c("pooled","per_group"),
+                              group_map = NULL,
+                              initial_capital = 1e5,
+                              name_prefix = "",
+                              seed = NULL,
+                              ...) {
+  group_mode <- match.arg(group_mode)
+
+  # name vector: c("H1w","H4w",...)
+  keys <- paste0("H", horizons, "w")
+
+  res <- stats::setNames(vector("list", length(horizons)), keys)
+
+  for (i in seq_along(horizons)) {
+    h <- horizons[i]
+    if (!is.null(seed)) set.seed(seed)
+
+    Yh <- PortfolioTesteR::make_labels(
+      prices  = prices_weekly,
+      horizon = h,
+      type    = "log"
+    )
+
+    args_common <- list(
+      features_list   = features_list,
+      labels          = Yh,
+      fit_fn          = fit_fn,
+      predict_fn      = predict_fn,
+      schedule        = schedule,
+      transform       = transform,
+      selection       = selection,
+      weighting       = weighting,
+      caps            = caps,
+      prices          = prices_weekly,
+      initial_capital = initial_capital
+    )
+
+    res[[i]] <-
+      if (group_mode == "pooled") {
+        do.call(PortfolioTesteR::ml_backtest,
+                c(args_common,
+                  list(group = "pooled",
+                       name  = sprintf("%sPooled (%dw)", name_prefix, h)),
+                  list(...)))
+      } else {
+        stopifnot(!is.null(group_map),
+                  all(c("Symbol","Group") %in% names(group_map)))
+        do.call(PortfolioTesteR::ml_backtest,
+                c(args_common,
+                  list(group = "per_group", group_map = group_map,
+                       name  = sprintf("%sSector-neutral (%dw)", name_prefix, h)),
+                  list(...)))
+      }
+  }
+
+  # Attach a tiny config breadcrumb for reproducibility
+  attr(res, "config") <- list(
+    horizons = horizons,
+    schedule = schedule,
+    selection = selection,
+    weighting = weighting,
+    caps = caps,
+    transform = transform,
+    group_mode = group_mode,
+    seed = seed,
+    name_prefix = name_prefix
+  )
+
+  res
+}
+
+
+#' Collect diagnostics from two `ml_backtest_multi()` runs
+#'
+#' Builds a compact set of outputs—coverage, IC series, OOS-only rolling IC,
+#' performance tables (Full/Pre/Post), turnover, and a cost sweep—given two
+#' lists of backtests (pooled and per-group) produced by `ml_backtest_multi()`.
+#'
+#' @param bt_pooled_list Named list of backtests (keys like `H4w`, `H13w`)
+#'   produced with `group_mode = "pooled"`.
+#' @param bt_neutral_list Named list of backtests (same keys) produced with
+#'   `group_mode = "per_group"`.
+#' @param weekly_prices Deprecated alias for `prices`; kept for backwards compatibility.
+#' @param horizons Integer vector of horizons (in weeks) expected in the lists.
+#' @param split_date `Date` used to split performance into `Pre`/`Post`.
+#' @param cost_bps Numeric vector of per-rebalance cost levels (in basis points)
+#'   for the turnover-based cost sweep. Default `c(5, 10, 15, 20, 25, 50)`.
+#' @param freq Integer frequency used by `perf_metrics()` (e.g., `52` for weekly).
+#' @param prices Optional price table (preferred). If `NULL`, `weekly_prices` is used.
+#' @param ic_roll_window Integer window length (weeks) for rolling IC on OOS decision dates.
+#'   Default `26L`.
+#' @param mask_scores_to_decision_dates Logical; if `TRUE` (default) scores are
+#'   masked to OOS decision dates only (see [scores_oos_only()]).
+#' @param cost_model Function `(turnover, bps)` returning per-period cost to subtract
+#'   from returns in the sweep. Default scales linearly with turnover.
+#'
+#' @details
+#' Both input lists must have identical horizon keys (`paste0("H", h, "w")`).
+#' Coverage and IC series are computed from stored `scores`; rolling IC is built
+#' on OOS decision dates only; performance is summarised for the full sample
+#' and `Pre`/`Post` relative to `split_date`; turnover is derived from realised
+#' sector-neutral weights; and a turnover-based cost sweep is evaluated on the
+#' sector-neutral run across `cost_bps`.
+#'
+#' @return
+#' A named list with one element per horizon, each containing:
+#' \itemize{
+#'   \item `bt_pooled`, `bt_neutral` — the input backtests;
+#'   \item `coverage` — coverage by date for pooled/neutral;
+#'   \item `ic_series` — raw IC series for pooled/neutral;
+#'   \item `icroll_oos_26w` — rolling IC (OOS-only) for pooled/neutral;
+#'   \item `masked_scores` — OOS-masked score tables for pooled/neutral;
+#'   \item `perf_tables` — performance tables (Full/Pre/Post);
+#'   \item `turnover_neutral` — turnover series for the sector-neutral run;
+#'   \item `cost_sweep_neutral` — performance under gross/net across `cost_bps`.
+#' }
+#'
+#' @seealso [ml_backtest_multi()], [scores_oos_only()], [PortfolioTesteR::perf_metrics()]
+#' @family Chapter3-helpers
+#' @examples
+#' \donttest{
+#' if (requireNamespace("PortfolioTesteR", quietly = TRUE)) {
+#'   library(PortfolioTesteR)
+#'   data(sample_prices_weekly, package = "PortfolioTesteR")
+#'   # Simple feature
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, 12)
+#'   feats <- list(mom12 = mom12)
+#'   fit_first     <- function(X, y, ...) list()
+#'   predict_first <- function(model, Xnew, ...) as.numeric(Xnew[[1]])
+#'   sch <- list(is = 52L, oos = 26L, step = 26L)
+#'   syms <- setdiff(names(sample_prices_weekly), "Date")
+#'   gmap <- data.frame(Symbol = syms,
+#'                      Group  = rep(c("G1","G2"), length.out = length(syms)))
+#'   bt_pooled  <- ml_backtest_multi(feats, sample_prices_weekly, c(4L),
+#'                                   fit_first, predict_first, sch,
+#'                                   selection = list(top_k = 5L),
+#'                                   weighting = list(method = "softmax", temperature = 12),
+#'                                   caps = list(max_per_symbol = 0.10),
+#'                                   group_mode = "pooled")
+#'   bt_neutral <- ml_backtest_multi(feats, sample_prices_weekly, c(4L),
+#'                                   fit_first, predict_first, sch,
+#'                                   selection = list(top_k = 5L),
+#'                                   weighting = list(method = "softmax", temperature = 12),
+#'                                   caps = list(max_per_symbol = 0.10),
+#'                                   group_mode = "per_group",
+#'                                   group_map = gmap)
+#'   out <- pt_collect_results(
+#'     bt_pooled_list  = bt_pooled,
+#'     bt_neutral_list = bt_neutral,
+#'     prices          = sample_prices_weekly,
+#'     horizons        = c(4L),
+#'     split_date      = as.Date("2019-01-01"),
+#'     cost_bps        = c(5, 15),
+#'     freq            = 52,
+#'     ic_roll_window  = 13L
+#'   )
+#'   names(out)
+#'   str(out[["H4w"]]$perf_tables)
+#' }}
+#'
+#' @export
+#' @importFrom data.table as.data.table setorder shift melt fifelse rbindlist
+#' @importFrom stats setNames
+pt_collect_results <- function(bt_pooled_list,
+                               bt_neutral_list,
+                               weekly_prices,              # kept for backwards compat
+                               horizons,
+                               split_date,
+                               cost_bps = c(5,10,15,20,25,50),
+                               freq = 52,
+                               # --- new, all default to current behaviour ---
+                               prices = NULL,              # alias for weekly_prices
+                               ic_roll_window = 26L,
+                               mask_scores_to_decision_dates = TRUE,
+                               cost_model = function(turnover, bps) (bps/10000) * turnover) {
+
+  prices_in <- if (!is.null(prices)) prices else weekly_prices
+
+  # ---- internal helpers ----
+  scores_oos_only_ <- function(scores_dt, weights_wide) {
+    if (!mask_scores_to_decision_dates) return(data.table::as.data.table(scores_dt))
+    scores_oos_only(scores_dt, weights_wide)  # uses the exported helper above
+  }
+
+  turnover_series_ <- function(weights_wide) {
+    W <- data.table::as.data.table(weights_wide)
+    if (!nrow(W)) return(data.table::data.table(Date = as.Date(character()), turnover = numeric()))
+    if (is.numeric(W$Date)) W[, Date := as.Date(Date, origin = "1970-01-01")]
+    sy <- setdiff(names(W), "Date")
+    if (!length(sy)) return(data.table::data.table(Date = as.Date(character()), turnover = numeric()))
+    Wn <- W[rowSums(as.matrix(W[, ..sy]) != 0) > 0]
+    if (!nrow(Wn)) return(data.table::data.table(Date = as.Date(character()), turnover = numeric()))
+    L  <- data.table::melt(Wn, id.vars = "Date", variable.name = "Symbol", value.name = "w")
+    data.table::setorder(L, Date, Symbol)
+    L[, w_lag := data.table::shift(w, 1L), by = Symbol]
+    L[, .(turnover = 0.5 * sum(abs(w - data.table::fifelse(is.na(w_lag), 0, w_lag)))), by = Date][!is.na(turnover)]
+  }
+
+  as_dt_metrics_ <- function(M) {
+    if (data.table::is.data.table(M)) return(M)
+    if (is.data.frame(M))            return(data.table::as.data.table(M))
+    if (is.list(M))                  return(data.table::as.data.table(M))
+    data.table::as.data.table(as.list(M))
+  }
+
+  perf_splits_ <- function(bt, split_date, freq) {
+    b <- bt$backtest
+    dates <- as.Date(b$dates, origin = "1970-01-01")
+    rvec  <- if (!is.null(b$returns)) as.numeric(b$returns) else as.numeric(b$active_returns)
+    if (!length(rvec)) return(data.table::data.table(Slice = character()))
+    R <- data.table::data.table(Date = dates[seq_along(rvec)], Ret = rvec)
+
+    summarize <- function(D) {
+      M <- PortfolioTesteR::perf_metrics(data.frame(Date = D$Date, ret = D$Ret), freq = freq)
+      as_dt_metrics_(M)
+    }
+    full <- summarize(R);                      full[,  Slice := "Full"]
+    pre  <- summarize(R[Date <  split_date]);  pre[,   Slice := "Pre"]
+    post <- summarize(R[Date >= split_date]);  post[,  Slice := "Post"]
+    data.table::rbindlist(list(full, pre, post), use.names = TRUE, fill = TRUE)
+  }
+
+  cost_sweep_ <- function(returns_dt, turnover_dt, cost_bps, freq) {
+    if (!nrow(returns_dt)) return(data.table::data.table())
+    D <- base::merge(data.table::copy(returns_dt),
+                     data.table::copy(turnover_dt),
+                     by = "Date", all.x = TRUE)
+    D[is.na(turnover), turnover := 0]
+
+    out <- lapply(cost_bps, function(bps) {
+      D[, Ret_net := Ret - cost_model(turnover, bps)]
+      g <- PortfolioTesteR::perf_metrics(data.frame(Date = D$Date, ret = D$Ret),      freq = freq)
+      n <- PortfolioTesteR::perf_metrics(data.frame(Date = D$Date, ret = D$Ret_net),  freq = freq)
+      gdt <- as_dt_metrics_(g)[, `:=`(Cost_bps = bps, Net = FALSE)]
+      ndt <- as_dt_metrics_(n)[, `:=`(Cost_bps = bps, Net = TRUE)]
+      list(gdt, ndt)
+    })
+    data.table::rbindlist(unlist(out, recursive = FALSE), use.names = TRUE, fill = TRUE)
+  }
+
+  # ---- sanity ----
+  need_names <- paste0("H", horizons, "w")
+  stopifnot(all(need_names %in% names(bt_pooled_list)),
+            all(need_names %in% names(bt_neutral_list)))
+
+  out <- stats::setNames(vector("list", length(horizons)), need_names)
+
+  # ---- loop ----
+  for (h in horizons) {
+    key <- paste0("H", h, "w")
+    btP <- bt_pooled_list[[key]]
+    btN <- bt_neutral_list[[key]]
+
+    Yh <- PortfolioTesteR::make_labels(prices = prices_in, horizon = h, type = "log")
+
+    covP <- if (nrow(btP$scores)) PortfolioTesteR::coverage_by_date(btP$scores) else data.table::data.table()
+    covN <- if (nrow(btN$scores)) PortfolioTesteR::coverage_by_date(btN$scores) else data.table::data.table()
+    icP  <- if (nrow(btP$scores)) PortfolioTesteR::ml_ic_series_on_scores(btP$scores, Yh) else data.table::data.table()
+    icN  <- if (nrow(btN$scores)) PortfolioTesteR::ml_ic_series_on_scores(btN$scores, Yh) else data.table::data.table()
+
+    S_P_oos <- scores_oos_only_(btP$scores, btP$weights)
+    S_N_oos <- scores_oos_only_(btN$scores, btN$weights)
+
+    icrollP_oos <- if (nrow(S_P_oos)) PortfolioTesteR::ml_plot_ic_roll(S_P_oos, Yh, window = ic_roll_window) else data.table::data.table()
+    icrollN_oos <- if (nrow(S_N_oos)) PortfolioTesteR::ml_plot_ic_roll(S_N_oos, Yh, window = ic_roll_window) else data.table::data.table()
+
+    perfP <- perf_splits_(btP, split_date = split_date, freq = freq)
+    perfN <- perf_splits_(btN, split_date = split_date, freq = freq)
+
+    turnsN <- turnover_series_(btN$weights)
+
+    bN <- btN$backtest
+    datesN <- as.Date(bN$dates, origin = "1970-01-01")
+    rvecN  <- if (!is.null(bN$returns)) as.numeric(bN$returns) else as.numeric(bN$active_returns)
+    retN   <- if (length(rvecN)) data.table::data.table(Date = datesN[seq_along(rvecN)], Ret = rvecN) else data.table::data.table()
+
+    costsN <- cost_sweep_(retN, turnsN, cost_bps = cost_bps, freq = freq)
+
+    out[[key]] <- list(
+      bt_pooled            = btP,
+      bt_neutral           = btN,
+      coverage             = list(pooled = covP, neutral = covN),
+      ic_series            = list(pooled = icP, neutral = icN),
+      icroll_oos_26w       = list(pooled = icrollP_oos, neutral = icrollN_oos),
+      masked_scores        = list(pooled = S_P_oos, neutral = S_N_oos),
+      perf_tables          = list(pooled = perfP, neutral = perfN),
+      turnover_neutral     = turnsN,
+      cost_sweep_neutral   = costsN
+    )
+  }
+
+  attr(out, "config") <- list(
+    horizons           = horizons,
+    split_date         = split_date,
+    cost_bps           = cost_bps,
+    freq               = freq,
+    ic_roll_window     = ic_roll_window,
+    masked_to_decision = mask_scores_to_decision_dates
+  )
+  out
+}
+
+
+
+#' Mask score tables to out-of-sample decision dates
+#'
+#' Utility used in the chapter’s diagnostics: keep scores only on dates when a
+#' portfolio decision was actually made (non-zero realised weights); set other
+#' dates to `NA`. Inputs are wide by symbol with a `Date` column.
+#'
+#' @param scores_dt Wide table of model scores with columns `Date`, `SYM1`,
+#'   `SYM2`, … (one column per symbol).
+#' @param weights_wide Wide table of realised portfolio weights with columns
+#'   `Date`, `SYM1`, `SYM2`, … (one column per symbol). Decision dates are
+#'   inferred as rows where any symbol weight is non-zero.
+#'
+#' @return
+#' A copy of `scores_dt` where rows not matching decision dates are set to `NA`
+#' (except the `Date` column). If either input is empty, returns `scores_dt[0]`.
+#'
+#' @examples
+#' # Toy example
+#' dates <- as.Date("2020-01-01") + 7*(0:5)
+#' scores <- data.frame(
+#'   Date = dates,
+#'   AAA = seq(0.1, 0.6, length.out = 6),
+#'   BBB = rev(seq(0.1, 0.6, length.out = 6))
+#' )
+#' weights <- data.frame(
+#'   Date = dates,
+#'   AAA  = c(0, 0.1, 0, 0.2, 0, 0.15),
+#'   BBB  = c(0, 0,   0, 0,   0, 0   )
+#' )
+#' scores_oos_only(scores, weights)
+#'
+#' @seealso [pt_collect_results()]
+#' @family Chapter3-helpers
+#' @export
+#' @importFrom data.table as.data.table setorder shift melt fifelse
+scores_oos_only <- function(scores_dt, weights_wide) {
+  S <- data.table::as.data.table(scores_dt)
+  W <- data.table::as.data.table(weights_wide)
+  if (!nrow(S) || !nrow(W)) return(S[0])
+  if (is.numeric(S$Date)) S[, Date := as.Date(Date, origin = "1970-01-01")]
+  if (is.numeric(W$Date)) W[, Date := as.Date(Date, origin = "1970-01-01")]
+  sy <- setdiff(names(W), "Date")
+  if (!length(sy)) return(S[0])
+  ddates <- W$Date[rowSums(as.matrix(W[, ..sy]) != 0) > 0]
+  if (!length(ddates)) return(S[0])
+  S[!(Date %in% ddates), (setdiff(names(S), "Date")) := NA][]
+}
+
