@@ -1,0 +1,3210 @@
+## ---- backtesting.R ----
+#' Run Portfolio Backtest
+#'
+#' @description
+#' Main backtesting engine that simulates portfolio performance over time.
+#' Handles position tracking, transaction costs, and performance calculation.
+#'
+#' @param prices Price data (data.frame with Date column)
+#' @param weights Weight matrix from weighting functions
+#' @param initial_capital Starting capital (default: 100000)
+#' @param name Strategy name for reporting
+#' @param verbose Print progress messages (default: FALSE)
+#' @param stop_loss Optional stop loss percentage as decimal
+#' @param stop_monitoring_prices Optional daily prices for stop monitoring
+#'
+#' @return backtest_result object with performance metrics
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weights <- weight_equally(selected)
+#' result <- run_backtest(sample_prices_weekly, weights)
+
+## ---- backtesting.R ----
+#' Print Backtest Results
+#'
+#' @description
+#' S3 print method for backtest results. Shows key performance metrics.
+#'
+#' @param x backtest_result object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisible copy of x
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' mom <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' sel <- filter_top_n(mom, n = 10)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(sample_prices_weekly, W)
+#' print(res)
+
+## ---- backtesting.R ----
+#' Summary method for backtest results
+#'
+#' @param object A backtest_result object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisible copy of the object
+#' @export
+
+## ---- backtesting.R ----
+#' Plot Backtest Results
+#'
+#' @description
+#' S3 plot method for visualizing backtest performance.
+#'
+#' @param x backtest_result object
+#' @param type Plot type: "performance", "drawdown", "weights", or "all"
+#' @param ... Additional plotting parameters
+#'
+#' @return NULL (creates plot)
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' mom <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' sel <- filter_top_n(mom, n = 10)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(sample_prices_weekly, W)
+#' if (interactive()) plot(res, type = "performance")
+
+## ---- backtesting.R ----
+#' Calculate Portfolio Drawdowns
+#'
+#' @description
+#' Calculates drawdown series from portfolio values. Drawdown is the
+#' percentage decline from the previous peak.
+#'
+#' @param values Numeric vector of portfolio values
+#'
+#' @return Numeric vector of drawdown percentages (negative values)
+#' @keywords internal
+
+## ---- backtesting.R ----
+#' Calculate Annualized Return
+#'
+#' @description
+#' Converts total return to annualized return based on time period.
+#'
+#' @param result Backtest result object
+#'
+#' @return Annualized return as decimal (0.1 = 10%)
+#' @keywords internal
+
+## ---- backtesting.R ----
+#' Calculate Comprehensive Backtest Metrics
+#'
+#' @description
+#' Computes performance metrics including Sharpe ratio, maximum drawdown,
+#' win rate, and other statistics from backtest results.
+#'
+#' @param result Backtest result object from run_backtest()
+#'
+#' @return List containing performance metrics
+#' @export
+#' @examples
+#' # Create a backtest result to use
+#' data(sample_prices_weekly)
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weights <- weight_equally(selected)
+#' result <- run_backtest(sample_prices_weekly, weights)
+#'
+#' # Calculate metrics
+#' metrics <- backtest_metrics(result)
+#' print(metrics$sharpe_ratio)
+
+## ---- cross_sectional.R ----
+#' Calculate Cross-Sectional Ranking of Indicators
+#'
+#' @description
+#' Ranks each stock's indicator value against all other stocks on the same date.
+#' Enables relative strength strategies that adapt to market conditions. Optimized
+#' using matrix operations for 15x speedup.
+#'
+#' @param indicator_df Data frame with Date column and indicator values
+#' @param method Ranking method: "percentile" (0-100), "rank" (1-N), or "z-score"
+#'
+#' @return Data frame with same structure containing ranks/scores
+#' @export
+#' @examples
+#' # Rank RSI across all stocks
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
+#' rsi_ranks <- calc_relative_strength_rank(rsi, method = "percentile")
+#'
+#' # Find relatively overbought (top 10%)
+#' relative_overbought <- filter_above(rsi_ranks, 90)
+
+## ---- cross_sectional.R ----
+#' Calculate Market Breadth Percentage
+#'
+#' @description
+#' Measures the percentage of stocks meeting a condition (market participation).
+#' Useful for assessing market health and identifying broad vs narrow moves.
+#'
+#' @param condition_df Data frame with Date column and TRUE/FALSE values
+#' @param min_stocks Minimum stocks required for valid calculation (default: 10)
+#'
+#' @return A `data.table` with `Date` and `Breadth_[Sector]` columns (0-100 scale)
+#' @export
+#' @examples
+#' # Percent of stocks above 200-day MA
+#' data("sample_prices_weekly")
+#' ma200 <- calc_moving_average(sample_prices_weekly, 200)
+#' above_ma <- filter_above(calc_distance(sample_prices_weekly, ma200), 0)
+#' breadth <- calc_market_breadth(above_ma)
+
+## ---- cross_sectional.R ----
+#' Rank Indicators Within Each Sector
+#'
+#' @description
+#' Ranks stocks within their sector for sector-neutral strategies. Enables
+#' selecting best stocks from each sector regardless of sector performance.
+#' Optimized using matrix operations within groups.
+#'
+#' @param indicator_df Data frame with Date column and indicator values
+#' @param sector_mapping Data frame with `Symbol` and `Sector` columns.
+#' @param method "percentile" (0-100), "rank" (1-N), or "z-score"
+#' @param min_sector_size Minimum stocks per sector (default: 3)
+#'
+#' @return Data frame with within-sector ranks/scores
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' data("sample_sp500_sectors")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' sector_ranks <- rank_within_sector(momentum, sample_sp500_sectors)
+
+## ---- cross_sectional.R ----
+#' Calculate Market Breadth by Sector
+#'
+#' @description
+#' Measures participation within each sector separately, revealing which sectors
+#' have broad strength vs concentrated leadership. Optimized using pre-splitting
+#' for speed.
+#'
+#' @param condition_df Data frame with Date column and TRUE/FALSE values
+#' @param sector_mapping Data frame with `Symbol` and `Sector` columns.
+#' @param min_stocks_per_sector Minimum stocks for valid sector breadth (default: 3)
+#' @param na_sector_action How to handle unmapped stocks: "exclude", "separate", or "market"
+#'
+#' @return A `data.table` with `Date` and `Breadth_[Sector]` columns (0-100 scale)
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' data("sample_sp500_sectors")
+#' ma200 <- calc_moving_average(sample_prices_weekly, 200)
+#' above_ma <- filter_above(calc_distance(sample_prices_weekly, ma200), 0)
+#' sector_breadth <- calc_sector_breadth(above_ma, sample_sp500_sectors)
+
+## ---- cross_sectional.R ----
+#' Calculate Indicators Relative to Sector Average
+#'
+#' @description
+#' Measures how each stock's indicator compares to its sector benchmark.
+#' Enables sector-neutral strategies and identifies sector outperformers.
+#'
+#' @param indicator_df Data frame with Date column and indicator values
+#' @param sector_mapping Data frame with `Symbol` and `Sector` columns.
+#' @param method "difference" (absolute), "ratio" (relative), or "z-score"
+#' @param benchmark "mean" or "median" sector average
+#' @param ratio_threshold Minimum denominator for ratio method (default: 0.01)
+#' @param min_sector_size Minimum stocks per sector (default: 2)
+#'
+#' @return Data frame with sector-relative values
+#' @export
+#' @examples
+#' # Find stocks outperforming their sector
+#' data("sample_prices_weekly")
+#' data("sample_sp500_sectors")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' relative_momentum <- calc_sector_relative_indicators(
+#'   momentum, sample_sp500_sectors, method = "difference"
+#' )
+
+## ---- data.R ----
+#' Sample Weekly Stock Prices
+#'
+#' Weekly closing prices for 20 stocks from 2017-2019. Data includes
+#' major stocks from various sectors and is suitable for demonstrating
+#' backtesting and technical analysis functions.
+#'
+#' @format A data.table with 158 rows and 21 columns:
+#' \describe{
+#'   \item{Date}{Date object, weekly closing date (typically Friday)}
+#'   \item{AAPL}{Apple Inc. adjusted closing price}
+#'   \item{AMZN}{Amazon.com Inc. adjusted closing price}
+#'   \item{BA}{Boeing Co. adjusted closing price}
+#'   \item{BAC}{Bank of America Corp. adjusted closing price}
+#'   \item{...}{Additional stock symbols with adjusted closing prices}
+#' }
+#' @source Yahoo Finance historical data, adjusted for splits and dividends
+#' @examples
+#' data(sample_prices_weekly)
+#' head(sample_prices_weekly)
+#' # Calculate momentum
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' @usage data(sample_prices_weekly)
+#' @docType data
+#' @keywords datasets
+#' @name sample_prices_weekly
+
+## ---- data.R ----
+#' Sample Daily Stock Prices
+#'
+#' Daily closing prices for 20 stocks from 2017-2019. Contains the same
+#' symbols as sample_prices_weekly but at daily frequency for more
+#' granular analysis and performance calculations.
+#'
+#' @format A data.table with 754 rows and 21 columns:
+#' \describe{
+#'   \item{Date}{Date object, trading date}
+#'   \item{AAPL}{Apple Inc. adjusted closing price}
+#'   \item{AMZN}{Amazon.com Inc. adjusted closing price}
+#'   \item{BA}{Boeing Co. adjusted closing price}
+#'   \item{BAC}{Bank of America Corp. adjusted closing price}
+#'   \item{...}{Additional stock symbols with adjusted closing prices}
+#' }
+#' @source Yahoo Finance historical data, adjusted for splits and dividends
+#' @examples
+#' data(sample_prices_daily)
+#' head(sample_prices_daily)
+#' # Get date range
+#' range(sample_prices_daily$Date)
+#' @usage data(sample_prices_daily)
+#' @docType data
+#' @keywords datasets
+#' @name sample_prices_daily
+
+## ---- data.R ----
+#' S&P 500 Sector Mappings
+#'
+#' Sector classifications for the stock symbols in the sample datasets.
+#' Note: ETFs (SPY, QQQ, etc.) are not included as they represent
+#' indices or sectors themselves rather than individual companies.
+#'
+#' @format A data.table with 18 rows and 2 columns:
+#' \describe{
+#'   \item{Symbol}{Character, stock ticker symbol}
+#'   \item{Sector}{Character, GICS sector classification}
+#' }
+#' @source S&P 500 constituent data
+#' @examples
+#' data(sample_sp500_sectors)
+#' head(sample_sp500_sectors)
+#' # Count stocks per sector
+#' table(sample_sp500_sectors$Sector)
+#' @usage data(sample_sp500_sectors)
+#' @docType data
+#' @keywords datasets
+#' @name sample_sp500_sectors
+
+## ---- data_adapters.R ----
+#' Standardize Data to Library Format
+#'
+#' @description
+#' Internal function that converts various data formats to standard
+#' wide format with Date column and symbol columns.
+#'
+#' @param data Input data in long or wide format
+#' @param date_col Name of date column
+#' @param symbol_col Name of symbol column (for long format)
+#' @param price_col Name of price column (for long format)
+#' @param symbol_order Optional ordering for symbols
+#'
+#' @return Standardized data.table
+#' @keywords internal
+
+## ---- data_adapters.R ----
+#' Load Price Data from SQL Database
+#'
+#' @description
+#' Loads stock price data from SQLite database with automatic frequency conversion.
+#'
+#' @param db_path Path to SQLite database file
+#' @param symbols Character vector of stock symbols to load
+#' @param start_date Start date (YYYY-MM-DD) or NULL
+#' @param end_date End date (YYYY-MM-DD) or NULL
+#' @param auto_update Auto-update database before loading (default: TRUE)
+#' @param frequency "daily", "weekly", or "monthly" (default: "daily")
+#'
+#' @return data.table with Date column and one column per symbol
+#' @export
+#' @examplesIf requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")
+#' \donttest{
+#' prices <- sql_adapter(
+#'   db_path   = "sp500.db",
+#'   symbols   = c("AAPL", "MSFT"),
+#'   start_date = "2020-01-01",
+#'   end_date   = "2020-12-31",
+#'   frequency  = "weekly"
+#' )
+#' head(prices)
+#' }
+
+## ---- data_adapters.R ----
+#' Download Price Data from Yahoo Finance
+#'
+#' @description
+#' Downloads stock price data directly from Yahoo Finance using quantmod.
+#' No database required - perfect for quick analysis and experimentation.
+#' Get started with real data in under 5 minutes.
+#'
+#' @param symbols Character vector of stock symbols
+#' @param start_date Start date in "YYYY-MM-DD" format
+#' @param end_date End date in "YYYY-MM-DD" format
+#' @param frequency "daily" or "weekly" (default: "daily")
+#'
+#' @return Data.table with Date column and one column per symbol
+#' @export
+#' @examples
+#' # Use included sample data
+#' data(sample_prices_weekly)
+#'
+#' # Build a quick momentum strategy with offline data
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 2)
+#' weights <- weight_equally(selected)
+#' result <- run_backtest(sample_prices_weekly, weights, initial_capital = 100000)
+#'
+#' @examplesIf interactive()
+#' # Download tech stocks (requires internet, skipped on CRAN)
+#' if (requireNamespace("quantmod", quietly = TRUE)) {
+#'   prices <- yahoo_adapter(
+#'     symbols = c("AAPL", "MSFT", "GOOGL"),
+#'     start_date = "2023-01-01",
+#'     end_date = "2023-12-31",
+#'     frequency = "weekly"
+#'   )
+#'   momentum <- calc_momentum(prices, lookback = 12)
+#' }
+
+## ---- data_adapters.R ----
+#' Load Price Data from CSV File
+#'
+#' @description
+#' Reads stock price data from CSV files with flexible column naming.
+#' Automatically standardizes to library format.
+#'
+#' @param file_path Path to CSV file
+#' @param date_col Name of date column (default: "date")
+#' @param symbol_col Name of symbol column (default: "symbol")
+#' @param price_col Name of price column (default: "close")
+#' @param frequency Target frequency: "daily" or "weekly" (default: "daily")
+#' @param symbol_order Optional vector to order symbols
+#'
+#' @return Data.table with Date column and price columns
+#' @export
+#' @examples
+#' # Create a temporary tidy CSV from included weekly sample data (offline, fast)
+#' data("sample_prices_weekly")
+#' PW <- as.data.frame(sample_prices_weekly)
+#' syms <- setdiff(names(PW), "Date")[1:2]
+#'
+#' stk  <- stack(PW[1:10, syms])
+#' tidy <- data.frame(
+#'   Date   = rep(PW$Date[1:10], times = length(syms)),
+#'   Symbol = stk$ind,
+#'   Price  = stk$values
+#' )
+#'
+#' tmp <- tempfile(fileext = ".csv")
+#' write.csv(tidy, tmp, row.names = FALSE)
+#' prices <- csv_adapter(tmp)
+#' head(prices)
+#' unlink(tmp)
+
+## ---- data_adapters.R ----
+#' Adapter for User-Provided Data
+#'
+#' @description
+#' Simple adapter for when users provide their own data frame.
+#' Ensures proper Date formatting and sorting.
+#'
+#' @param data User-provided data frame
+#' @param date_col Name of date column (default: "Date")
+#'
+#' @return Standardized data.table
+#' @export
+#' @examples
+#' # Use your own data frame
+#' data("sample_prices_weekly")
+#' my_prices <- manual_adapter(sample_prices_weekly)
+
+## ---- data_adapters.R ----
+#' Validate Data Format for Library Functions
+#'
+#' @description
+#' Checks that data meets library requirements: proper Date column,
+#' at least one symbol, correct data types. Prints diagnostic info.
+#'
+#' @param data Data frame to validate
+#'
+#' @return TRUE if valid, stops with error if not
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' # Check if data is properly formatted
+#' validate_data_format(sample_prices_weekly)
+
+## ---- data_adapters.R ----
+#' Convert Data to N-Week Frequency
+#'
+#' @description
+#' Resamples daily or weekly data to n-week periods. Handles week-ending
+#' calculations and various aggregation methods.
+#'
+#' @param data Data.table with Date column and price columns
+#' @param n Number of weeks to aggregate (default: 1 for weekly)
+#' @param method Aggregation method: "last" or "mean" (default: "last")
+#'
+#' @return Data.table resampled to n-week frequency
+#' @export
+#' @examples
+#' data("sample_prices_daily")
+#' # Convert daily to weekly
+#' weekly <- convert_to_nweeks(sample_prices_daily, n = 1)
+#' # Convert to bi-weekly
+#' biweekly <- convert_to_nweeks(sample_prices_daily, n = 2)
+
+## ---- data_adapters.R ----
+#' Load Adjusted Price Data from SQL Database
+#'
+#' @description
+#' Loads adjusted stock prices (for splits/dividends) from SQLite.
+#'
+#' @param db_path Path to SQLite database file
+#' @param symbols Character vector of stock symbols to load
+#' @param start_date Start date (YYYY-MM-DD) or NULL
+#' @param end_date End date (YYYY-MM-DD) or NULL
+#' @param auto_update Auto-update database (default: FALSE)
+#' @param frequency "daily", "weekly", or "monthly" (default: "daily")
+#' @param use_adjusted Use adjusted prices if available (default: TRUE)
+#'
+#' @return data.table with Date column and adjusted prices per symbol
+#' @export
+#' @examplesIf requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")
+#' \donttest{
+#' prices <- sql_adapter_adjusted(
+#'   db_path   = "sp500.db",
+#'   symbols   = c("AAPL", "MSFT"),
+#'   start_date = "2020-01-01",
+#'   end_date   = "2020-12-31",
+#'   frequency  = "monthly"
+#' )
+#' head(prices)
+#' }
+
+## ---- data_adapters.R ----
+#' Load Mixed Symbols Including VIX
+#'
+#' @description
+#' Handles loading regular stocks and VIX together, with VIX loaded
+#' separately without auto-update to avoid issues.
+#'
+#' @param db_path Path to SQLite database
+#' @param symbols Character vector including regular stocks and optionally "VIX"
+#' @param start_date Start date for data
+#' @param end_date End date for data
+#' @param frequency Data frequency (default: "weekly")
+#' @param use_adjusted Use adjusted prices (default: TRUE)
+#'
+#' @return data.table with all symbols properly loaded
+#' @export
+#' @examplesIf requireNamespace("RSQLite", quietly = TRUE) && file.exists("sp500.db")
+#' \donttest{
+#' mixed <- load_mixed_symbols(
+#'   db_path  = "sp500.db",
+#'   symbols  = c("AAPL", "MSFT", "VIX"),
+#'   start_date = "2020-01-01",
+#'   end_date   = "2020-12-31",
+#'   frequency  = "weekly"
+#' )
+#' head(mixed)
+#' }
+
+## ---- data_utilities.R ----
+#' Download S&P 500 Sector Mappings from Wikipedia
+#'
+#' @description
+#' Scrapes current S&P 500 constituent list with sector classifications
+#' from Wikipedia and returns as a data.table.
+#'
+#' @return Data.table with columns: Symbol, Security, Sector, SubIndustry, Industry
+#' @export
+#' @examplesIf (requireNamespace("rvest", quietly = TRUE))
+#' \donttest{
+#' sectors <- download_sp500_sectors()
+#' head(sectors)
+#' }
+
+## ---- data_utilities.R ----
+#' Update VIX data in database
+#'
+#' @param db_path Path to SQLite database
+#' @param from_date Start date for update (NULL = auto-detect)
+#' @return Number of rows updated (invisible)
+#' @export
+
+## ---- examples_helpers.R ----
+#' List available example scripts
+#'
+#' @description
+#' Shows all example scripts included with the PortfolioTesteR package.
+#' These examples demonstrate various strategy patterns and library functions.
+#'
+#' @return Character vector of example filenames
+#' @export
+#'
+#' @examples
+#' # See available examples
+#' list_examples()
+#'
+#' # Run a specific example
+#' # run_example("example_momentum_basic.R")
+
+## ---- examples_helpers.R ----
+#' Run an Example Script
+#'
+#' @description
+#' Executes an example script bundled in the package `inst/examples/` folder.
+#'
+#' @param example_name Character scalar with the example filename (e.g. `"basic.R"`).
+#' @param echo Logical; print code as it runs (default `TRUE`).
+#'
+#' @return Invisibly returns `NULL`. Runs the example for its side effects.
+#' @export
+#'
+#' @examplesIf interactive()
+#' \donttest{
+#' # Example (requires a real file under inst/examples):
+#' # run_example("basic.R")
+#' }
+
+## ---- filters.R ----
+#' Select Top or Bottom N Stocks by Signal
+#'
+#' @description
+#' Selects the top N (best) or worst N stocks based on signal strength.
+#' Optimized using matrix operations for 5-10x speedup.
+#'
+#' @param signal_df Data frame with Date column and signal values
+#' @param n Number of stocks to select
+#' @param type "top" for highest values, "worst" for lowest values
+#'
+#' @return Binary selection matrix (1 = selected, 0 = not selected)
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' # Select 10 highest momentum stocks
+#' top10 <- filter_rank(momentum, 10, type = "top")
+
+## ---- filters.R ----
+#' Filter by Threshold Value
+#'
+#' @description
+#' Selects stocks above or below a threshold value.
+#'
+#' @param signal_df Data frame with signal values
+#' @param value Threshold value
+#' @param type "above" or "below"
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' # Select stocks with positive momentum
+#' positive <- filter_threshold(momentum, 0, type = "above")
+
+## ---- filters.R ----
+#' Select Top N Stocks by Signal Value
+#'
+#' @description
+#' Most commonly used filter function. Selects top N (highest) or bottom N (lowest)
+#' stocks by signal value. Optimized for 5-10x faster performance.
+#'
+#' @param signal_df Data frame with Date column and signal values
+#' @param n Number of stocks to select
+#' @param ascending FALSE (default) selects highest, TRUE selects lowest
+#'
+#' @return Binary selection matrix (1 = selected, 0 = not selected)
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' # Select 10 highest momentum stocks
+#' top_momentum <- filter_top_n(momentum, n = 10)
+
+## ---- filters.R ----
+#' Filter Stocks Above Threshold
+#'
+#' @description
+#' Convenience function to select stocks with signal above a value.
+#'
+#' @param signal_df Data frame with signal values
+#' @param value Threshold value
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
+#' high_rsi <- filter_above(rsi, 70)
+
+## ---- filters.R ----
+#' Filter Stocks Below Threshold
+#'
+#' @description
+#' Convenience function to select stocks with signal below a value.
+#'
+#' @param signal_df Data frame with signal values
+#' @param value Threshold value
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
+#' oversold <- filter_below(rsi, 30)
+
+## ---- filters.R ----
+#' Filter Stocks Between Two Values
+#'
+#' @description
+#' Selects stocks with signal values between lower and upper bounds.
+#'
+#' @param signal_df Data frame with signal values
+#' @param lower Lower bound (inclusive)
+#' @param upper Upper bound (inclusive)
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
+#' # Select stocks with RSI between 30 and 70
+#' neutral_rsi <- filter_between(rsi, 30, 70)
+
+## ---- filters.R ----
+#' Select Top N from Qualified Stocks
+#'
+#' @description
+#' Selects top N stocks by signal, but only from those meeting a condition.
+#' Combines qualification and ranking in one step.
+#'
+#' @param signal_df Signal values for ranking
+#' @param n Number to select
+#' @param condition_df Binary matrix of qualified stocks
+#' @param min_qualified Minimum qualified stocks required (default: 1)
+#' @param ascending FALSE for highest, TRUE for lowest
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' # Calculate indicators
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' distance_from_ma <- calc_distance(sample_prices_weekly, ma20)
+#'
+#' # Top 10 momentum stocks from those above MA
+#' above_ma <- filter_above(distance_from_ma, 0)
+#' top_qualified <- filter_top_n_where(momentum, 10, above_ma)
+
+## ---- filters.R ----
+#' Apply Market Regime Filter
+#'
+#' @description
+#' Applies regime-based filtering. When regime is FALSE (e.g., bear market),
+#' all selections become 0, moving portfolio to cash.
+#'
+#' @param selection_df Binary selection matrix
+#' @param regime_condition Logical vector (TRUE = trade, FALSE = cash)
+#' @param partial_weight Fraction to hold when regime is FALSE (default: 0)
+#'
+#' @return Modified selection matrix respecting regime
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' # Create selection
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' selected <- filter_top_n(momentum, 10)
+#'
+#' # Only trade when SPY above 20-week MA
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' spy_regime <- sample_prices_weekly$SPY > ma20$SPY
+#' spy_regime[is.na(spy_regime)] <- FALSE
+#'
+#' regime_filtered <- apply_regime(selected, spy_regime)
+
+## ---- filters.R ----
+#' Filter by Percentile
+#'
+#' @description
+#' Select securities in the top or bottom X percentile.
+#' More intuitive than filter_top_n when universe size varies.
+#'
+#' @param signal_df DataFrame with signal values
+#' @param percentile Percentile threshold (0-100)
+#' @param type "top" for highest signals, "bottom" for lowest
+#'
+#' @return Binary selection matrix
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' # Select top 20th percentile
+#' top_20pct <- filter_by_percentile(momentum, 20, type = "top")
+
+## ---- filters.R ----
+#' Combine Multiple Filter Conditions
+#'
+#' @description
+#' Combines multiple filter conditions using AND or OR logic.
+#'
+#' @param ... Two or more filter data frames to combine
+#' @param op Operation: "and" or "or"
+#' @param apply_when Optional condition vector for conditional filtering
+#' @param debug Print debug information (default: FALSE)
+#'
+#' @return Combined binary selection matrix
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' rsi <- calc_rsi(sample_prices_weekly, 14)
+#' # Create individual filters
+#' high_momentum <- filter_above(momentum, 0.05)
+#' moderate_rsi <- filter_between(rsi, 40, 60)
+#' # Combine them
+#' combined <- combine_filters(high_momentum, moderate_rsi, op = "and")
+
+## ---- ml.R ----
+#' Join multiple panels on intersecting dates (unique symbol names)
+#'
+#' Align and join a list of wide panels on their common dates. Each input
+#' panel must have one \code{Date} column and a disjoint set of symbol columns.
+#'
+#' @details
+#' All panels are first aligned to the intersection of their \code{Date} values.
+#' Symbol names must be unique across panels; if the same symbol appears in
+#' multiple inputs, an error is raised.
+#'
+#' @param panels List of wide panels (\code{data.frame} or \code{data.table}), each with columns \code{Date} + symbols.
+#'
+#' @return A \code{data.table} with \code{Date} plus the union of all symbol columns, restricted to common dates.
+#' @export
+
+## ---- ml.R ----
+#' Lag each symbol column by k steps
+#'
+#' Given a wide panel with a `Date` column followed by symbol columns, returns
+#' the same shape with each symbol column lagged by `k` periods. The `Date`
+#' column is preserved; leading values introduced by the lag are `NA_real_`.
+#'
+#' @param df data.frame or data.table with columns `Date` then symbols.
+#' @param k Integer lag (>= 1).
+#'
+#' @return A `data.table` with the same columns as `df`, lagged by `k`.
+#' @export
+#' @examples
+#' x <- data.frame(Date = as.Date("2020-01-01") + 0:2, A = 1:3, B = 11:13)
+#' panel_lag(x, 1L)
+
+## ---- ml.R ----
+#' Make future-return labels aligned to the decision date
+#'
+#' Compute forward returns over a fixed horizon and align them to the decision date.
+#'
+#' @details
+#' For each date \eqn{t}, the label is computed from prices at \eqn{t} and \eqn{t + h}.
+#' \itemize{
+#'   \item \code{type = "simple"}: \eqn{p_{t+h}/p_t - 1}
+#'   \item \code{type = "log"}: \eqn{\log(p_{t+h}) - \log(p_t)}
+#'   \item \code{type = "sign"}: \code{sign(simple return)}
+#' }
+#' Trailing dates that do not have \code{horizon} steps ahead are set to \code{NA}.
+#'
+#' @param prices Wide price panel (\code{Date} + symbols).
+#' @param horizon Integer \code{>= 1}, number of forward steps for the label.
+#' @param type Character, one of \code{"log"}, \code{"simple"}, \code{"sign"}.
+#'
+#' @return A \code{data.table} with \code{Date} + symbols containing the labels.
+#' @export
+
+## ---- ml.R ----
+#' Quick leakage guard: date alignment & NA expectations
+#'
+#' @param features Wide feature panel with a `Date` column.
+#' @param labels   Wide label panel (same `Date` index / symbols as features).
+#' @param verbose  If TRUE, prints diagnostic messages.
+#'
+#' @return TRUE/FALSE (invisible), with messages if `verbose = TRUE`.
+#' @export
+
+## ---- ml.R ----
+#' Rolling fit/predict for tabular features (pooled / per-symbol / per-group)
+#'
+#' @param features_list list of wide panels (each: `Date` + symbols).
+#' @param label wide panel of future returns (same symbol set as features).
+#' @param fit_fn function `(X, y) -> model` trained on in-sample stacked rows.
+#' @param predict_fn function `(model, Xnew) -> numeric` scores.
+#' @param is_periods,oos_periods,step ints; in-sample length, out-of-sample length,
+#'   and step size for the rolling window.
+#' @param group one of `"pooled"`, `"per_symbol"`, `"per_group"`.
+#' @param group_map optional `data.frame(Symbol, Group)` if `group = "per_group"`.
+#' @param na_action `"omit"` or `"zero"` for feature NA handling.
+#' @return wide panel of scores: `Date + symbols`.
+#' @export
+#' @examples
+#' \donttest{
+#' data(sample_prices_weekly); data(sample_prices_daily)
+#' mom <- panel_lag(calc_momentum(sample_prices_weekly, 12), 1)
+#' vol <- panel_lag(align_to_timeframe(
+#'   calc_rolling_volatility(sample_prices_daily, 20),
+#'   sample_prices_weekly$Date, "forward_fill"), 1)
+#' Y <- make_labels(sample_prices_weekly, horizon = 4, type = "log")
+#' fit_lm  <- function(X,y){ Xc <- cbind(1,X); list(coef=stats::lm.fit(Xc,y)$coefficients) }
+#' pred_lm <- function(m,X){ as.numeric(cbind(1,X) %*% m$coef) }
+#' S <- roll_fit_predict(list(mom=mom, vol=vol), Y, fit_lm, pred_lm, 52, 4, 4)
+#' head(S)
+#' }
+
+## ---- ml.R ----
+#' Per-date score transform (z-score or rank)
+#' @param scores wide panel `Date + symbols`.
+#' @param method `"zscore"` or `"rank"`.
+#' @param per_date logical; currently must be TRUE.
+#' @param robust logical; robust z-score via median/MAD.
+#' @return panel of transformed scores.
+#' @export
+
+## ---- ml.R ----
+#' Select top-K scores per date
+#' @param scores score panel.
+#' @param k integer; how many to keep per date.
+#' @param ties Ties method passed to base::rank (e.g., 'first','average').
+#' @return logical mask panel (`Date + symbols`) marking selected names.
+#' @export
+
+## ---- ml.R ----
+#' Map scores to portfolio weights
+#' @param method `"softmax"`, `"rank"`, `"linear"`, `"equal"`.
+#' @param temperature softmax temperature (higher=flatter).
+#' @param floor non-negative number added before normalization.
+#' @param scores Wide score panel (Date + symbols).
+#' @return weight panel (`Date + symbols`) with non-negative rows summing to 1
+#'   over active dates.
+#' @export
+
+## ---- ml.R ----
+#' Apply post-weight exposure caps
+#' @param caps list with `max_per_symbol` and optional `max_per_group`.
+#' @param group_map optional `data.frame(Symbol, Group)`.
+#' @param renorm logical; renormalize each active row to 1.
+#' @param weights Wide weight panel (Date + symbols) before caps.
+#' @export
+
+## ---- ml.R ----
+#' Combine multiple score panels (mean / weighted / rank-average / trimmed)
+#'
+#' Combine several wide score panels (`Date` + symbols) into a single panel
+#' by applying one of several aggregation methods.
+#'
+#' @details
+#' \itemize{
+#'   \item \code{method = "mean"}: simple column-wise mean across panels.
+#'   \item \code{method = "weighted"}: weighted mean; see \code{weights}.
+#'   \item \code{method = "rank_avg"}: average of within-date normalized ranks.
+#'   \item \code{method = "trimmed_mean"}: mean with \code{trim} fraction removed at both tails.
+#' }
+#'
+#' @param scores_list List of wide score panels to combine (each has columns \code{Date} + symbols).
+#' @param method Character, one of \code{"mean"}, \code{"weighted"}, \code{"rank_avg"}, \code{"trimmed_mean"}.
+#' @param weights Optional numeric vector of length equal to \code{length(scores_list)}; used only when \code{method = "weighted"}.
+#' @param trim Numeric in \code{[0, 0.5)}; fraction to trim from each tail for \code{method = "trimmed_mean"}.
+#'
+#' @return A \code{data.table} with columns \code{Date} + symbols, containing the combined scores.
+#' @export
+
+## ---- ml.R ----
+#' Cap turnover sequentially across dates
+#' @param weights desired weight panel.
+#' @param max_turnover maximum per-rebalance turnover (0..1).
+#' @return executed weights after turnover capping.
+#' @export
+
+## ---- ml.R ----
+#' Validate a symbol-to-group mapping
+#'
+#' Normalizes and checks a symbol → group mapping for a given set of symbols.
+#' Accepts either a data.frame/data.table with columns `Symbol` and `Group`,
+#' or a named character vector `c(symbol = "group", ...)`.
+#' Errors if any requested symbol is missing or mapped more than once.
+#'
+#' @param symbols Character vector of symbols to validate/keep.
+#' @param group_map Data frame/data.table with columns `Symbol`,`Group`,
+#'   or a named character vector mapping `symbol -> group`.
+#'
+#' @return A two-column `data.frame` with columns `Symbol` and `Group`
+#'   (one row per symbol), sorted by `Symbol`.
+#' @export
+#' @examples
+#' validate_group_map(
+#'   c("A","B"),
+#'   data.frame(Symbol = c("A","B"), Group = c("G1","G1"))
+#' )
+
+## ---- ml.R ----
+#' Demo sector (group) map for examples/tests
+#'
+#' @param symbols character vector of tickers.
+#' @param n_groups integer number of groups to assign (cycled).
+#' @return A data.table with columns `Symbol` and `Group` (title-case), for demo use.
+#'
+#' @examples
+#' # Minimal usage
+#' syms <- c("AAPL","MSFT","AMZN","XOM","JPM")
+#' gdf  <- demo_sector_map(syms, n_groups = 3L)  # columns: Symbol, Group
+#' print(gdf)
+#'
+#' # Use with cap_exposure(): convert to a named vector (names = symbols)
+#' gmap <- stats::setNames(gdf$Group, gdf$Symbol)
+#'
+#' data(sample_prices_weekly)
+#' mom12 <- calc_momentum(sample_prices_weekly, 12)
+#' sel10 <- filter_top_n(mom12, 10)
+#' w_eq  <- weight_equally(sel10)
+#'
+#' w_cap <- cap_exposure(
+#'   weights          = w_eq,
+#'   max_per_symbol   = 0.10,
+#'   group_map        = gmap,     # <- named vector, OK for current cap_exposure()
+#'   max_per_group    = 0.45,
+#'   renormalize_down = TRUE
+#' )
+#' head(w_cap)
+#'
+#' @export
+
+## ---- ml.R ----
+#' One-call backtest wrapper (tabular features)
+#'
+#' @inheritParams roll_fit_predict
+#' @param schedule list with elements `is`, `oos`, `step`.
+#' @param transform `"none"`, `"zscore"`, `"rank"` for per-date score transform.
+#' @param selection list: `top_k`, `max_per_group` (optional).
+#' @param weighting list: `method`, `temperature`, `floor`.
+#' @param caps list: `max_per_symbol`, optionally `max_per_group`.
+#' @param prices price panel used by the backtester (`Date` + symbols).
+#' @param initial_capital starting capital.
+#' @param name string for the backtest result.
+#' @param labels Wide label panel (Date + symbols).
+#' @param turnover Optional turnover cap settings (currently advisory/unused).
+#' @return list: `scores`, `mask`, `weights`, `backtest`.
+#' @export
+#' @examples
+#' \donttest{
+#' data(sample_prices_weekly); data(sample_prices_daily)
+#' mom <- panel_lag(calc_momentum(sample_prices_weekly, 12), 1)
+#' vol <- panel_lag(align_to_timeframe(
+#'   calc_rolling_volatility(sample_prices_daily, 20),
+#'   sample_prices_weekly$Date, "forward_fill"), 1)
+#' Y <- make_labels(sample_prices_weekly, 4, "log")
+#' fit_lm  <- function(X,y){ Xc <- cbind(1,X); list(coef=stats::lm.fit(Xc,y)$coefficients) }
+#' pred_lm <- function(m,X){ as.numeric(cbind(1,X) %*% m$coef) }
+#' res <- ml_backtest(list(mom=mom, vol=vol), Y, fit_lm, pred_lm,
+#'                    schedule = list(is=52,oos=4,step=4),
+#'                    transform = "zscore",
+#'                    selection = list(top_k=10),
+#'                    weighting = list(method="softmax", temperature=12),
+#'                    caps = list(max_per_symbol=0.10),
+#'                    prices = sample_prices_weekly, initial_capital = 1e5)
+#' res$backtest
+#' }
+
+## ---- ml.R ----
+#' Select top-k symbols per group by score
+#'
+#' @description
+#' For each date, choose the top `k` symbols **within each group** based on a
+#' score panel. Returns a logical selection panel aligned to the input.
+#'
+#' @details
+#' \itemize{
+#'   \item Group membership comes from `group_map` (symbol -> group).
+#'   \item Selection is computed independently by group on each date.
+#'   \item Ties follow the ordering implied by `order(..., method = "radix")`.
+#' }
+#'
+#' @param scores Wide score panel (`Date` + symbols).
+#' @param k Positive integer: number of symbols to select per group.
+#' @param group_map Named character vector or 2-column data.frame
+#'   (`symbol`, `group`) mapping symbols to groups.
+#' @param max_per_group Integer cap per group (default `3L`).
+#'
+#' @return Logical selection panel (`Date` + symbols) where `TRUE` marks
+#'         selected symbols.
+#' @examples
+#' set.seed(42)
+#' scores <- data.frame(
+#'   Date = as.Date("2020-01-01") + 0:1,
+#'   A = runif(2), B = runif(2), C = runif(2), D = runif(2), E = runif(2), F = runif(2)
+#' )
+#' gmap <- data.frame(Symbol = c("A","B","C","D","E","F"),
+#'                    Group  = c("G1","G1","G2","G2","G3","G3"))
+#' sel <- select_top_k_scores_by_group(scores, k = 4, group_map = gmap, max_per_group = 2)
+#' head(sel)
+#' @export
+
+## ---- ml.R ----
+#' Evaluate scores vs labels (IC and hit-rate)
+#' @param top_frac fraction in the top bucket for hit-rate.
+#' @param method `"spearman"` or `"pearson"`.
+#' @param scores Wide score panel.
+#' @param labels Wide label panel aligned to scores.
+#' @return data.table with `Date, IC, hit_rate`; `ICIR` on `attr(result,"ICIR")`.
+#' @export
+
+## ---- ml.R ----
+#' Count finite entries per date
+#' @param panel wide panel `Date + symbols`.
+#' @return data.table with `Date, n_finite`.
+#' @export
+
+## ---- ml.R ----
+#' Information Coefficient time series
+#'
+#' @param scores Wide score panel (Date + symbols).
+#' @param labels Wide label panel aligned to scores.
+#' @param method IC method ('spearman' or 'pearson').
+#'
+#' @return data.table with `Date` and `IC`.
+#' @export
+
+## ---- ml.R ----
+#' Bucketed label analysis by score rank
+#' @param n_buckets number of equal-count buckets.
+#' @param label_type `"log"` or `"simple"` for interpretation of labels.
+#' @param scores Wide score panel (Date + symbols).
+#' @param labels Wide label panel aligned to scores (Date + symbols).
+#' @param n_buckets Number of equal-count buckets.
+#' @param label_type Use 'log' or 'simple' label arithmetic.
+#' @return data.table of per-date bucket returns; cumulative series attached
+#'   as `attr(result, "cum")`.
+#' @export
+
+## ---- ml.R ----
+#' Rolling IC mean, standard deviation, and ICIR
+#'
+#' Compute rolling information coefficient (IC) statistics from a per-date IC series.
+#'
+#' @details
+#' For each rolling window, compute the mean IC, the standard deviation of IC,
+#' and the information coefficient ratio (ICIR = mean / sd). Windows with fewer
+#' than two finite IC values yield \code{NA} for ICIR.
+#'
+#' @param ic_dt Data frame/data.table produced by \code{\link{ic_series}} with columns \code{Date} and \code{IC}.
+#' @param window Integer window length for the rolling statistics.
+#'
+#' @return A \code{data.table} with columns \code{Date}, \code{IC_mean}, \code{IC_sd}, and \code{ICIR}.
+#' @export
+
+## ---- ml.R ----
+#' Rebalance calendar (rows with non-zero allocation)
+#' @return data.table with `Date, row` indices where a rebalance occurred.
+#' @param weights Wide weight panel (Date + symbols).
+#' @export
+
+## ---- ml.R ----
+#' Carry-forward weights between rebalances (validation helper)
+#' @return weight panel with rows filled forward and each active row sum=1.
+#' @param weights Wide weight panel (Date + symbols) with weights only on rebalance rows.
+#' @export
+
+## ---- ml.R ----
+#' Panel simple returns from prices
+#'
+#' Converts a wide price panel (Date + symbols) into arithmetic simple returns
+#' at the same cadence, dropping the first row per symbol.
+#'
+#' @param prices A data frame or data.table with columns \code{Date} and one column
+#'   per symbol containing adjusted prices at a common frequency (daily, weekly, monthly).
+#'
+#' @return A data frame with \code{Date} and one column per symbol containing simple returns
+#'   \eqn{R_{t} = P_{t}/P_{t-1} - 1}.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   rets <- panel_returns_simple(sample_prices_weekly)
+#'   head(rets)
+#' }
+#'
+#' @export
+
+## ---- ml.R ----
+#' Portfolio returns from weights and prices (CASH-aware)
+#'
+#' Computes the portfolio simple return series by applying (lagged) portfolio
+#' weights to next-period asset returns, optionally net of proportional costs.
+#'
+#' **CASH support:** if `weights` contains a column named `"CASH"` (case-insensitive)
+#' but `prices` has no matching column, a synthetic flat price series is added
+#' internally (price = 1 \eqn{\Rightarrow}{=>} return = 0). In that case the function does **not**
+#' re-normalise the non-CASH weights; the row is treated as a complete budget
+#' (symbols + CASH = 1).
+#'
+#' @param weights A data.frame/data.table of portfolio weights on rebalance dates:
+#'   first column `Date`, remaining columns one per symbol (numeric weights).
+#'   Weights decided at \eqn{t-1} are applied to returns over \eqn{t}.
+#' @param prices A data.frame/data.table of adjusted prices at the same cadence:
+#'   first column `Date`, remaining columns one per symbol.
+#' @param cost_bps One-way proportional cost per side in basis points (e.g., `10`
+#'   for 10 bps). Default `0`. If `> 0` and your package exposes a turnover
+#'   helper, it will be used; otherwise costs are ignored with a warning.
+#'
+#' @return A `data.table` with columns `Date` and `ret` (portfolio simple return).
+#'
+#' @details
+#' The function carries forward the latest available weights to each return row
+#' via the usual one-period decision lag. Transaction cost handling is conservative:
+#' if a turnover helper is not available, costs are skipped.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, 12)
+#'   sel10 <- PortfolioTesteR::filter_top_n(mom12, 10)
+#'   w_eq  <- PortfolioTesteR::weight_equally(sel10)
+#'
+#'   pr <- portfolio_returns(w_eq, sample_prices_weekly, cost_bps = 0)
+#'   head(pr)
+#' }
+#'
+#' @seealso PortfolioTesteR::panel_returns_simple
+#' @export
+
+## ---- ml.R ----
+#' Portfolio performance metrics
+#'
+#' @param ret_dt data.table/data.frame with columns `Date` and `ret`.
+#' @param freq Integer periods-per-year for annualization (e.g., 52 or 252).
+#' @return list with `total_return`, `ann_return`, `ann_vol`, `sharpe`, `max_drawdown`.
+#' @export
+
+## ---- ml.R ----
+#' Quick grid tuning for tabular pipeline
+#' @param grid list of vectors: `top_k`, `temperature`, `method`, `transform`.
+#' @param cost_bps optional one-way cost in basis points for net performance.
+#' @param freq re-annualization frequency (e.g., 52).
+#' @param features_list List of feature panels.
+#' @param labels Label panel.
+#' @param prices Price panel used for backtests (Date + symbols).
+#' @param fit_fn,predict_fn Model fit and predict functions.
+#' @param schedule List with elements is, oos, step.
+#' @param group Grouping mode for roll_fit_predict ('pooled'/'per_symbol'/'per_group').
+#' @param selection_defaults Default selection settings (e.g., top_k).
+#' @param weighting_defaults Default weighting settings (e.g., method, temperature).
+#' @param caps Exposure caps (e.g., max_per_symbol/max_per_group).
+#' @param group_map Optional Symbol->Group mapping.
+#' @return data.table with metrics per grid row.
+#' @export
+
+## ---- ml.R ----
+#' Rolling fit/predict for sequence models (flattened steps-by-p features)
+#'
+#' @param features_list list of panels to be stacked over `steps` history.
+#' @param labels future-return panel aligned to the features.
+#' @param steps int; lookback length (e.g., 26).
+#' @param horizon int; label horizon (e.g., 4).
+#' @param normalize `"none"`, `"zscore"`, or `"minmax"` applied using IS data only.
+#' @param min_train_samples Optional minimum IS samples required to fit; if not met, skip fit.
+#' @inheritParams roll_fit_predict
+#' @return wide panel of scores.
+#' @export
+#' @examples
+#' \donttest{
+#' data(sample_prices_weekly); data(sample_prices_daily)
+#' mom <- panel_lag(calc_momentum(sample_prices_weekly, 12), 1)
+#' vol <- panel_lag(align_to_timeframe(
+#'   calc_rolling_volatility(sample_prices_daily, 20),
+#'   sample_prices_weekly$Date, "forward_fill"), 1)
+#' Y <- make_labels(sample_prices_weekly, horizon = 4, type = "log")
+#' fit_lm  <- function(X,y){ Xc <- cbind(1,X); list(coef=stats::lm.fit(Xc,y)$coefficients) }
+#' pred_lm <- function(m,X){ as.numeric(cbind(1,X) %*% m$coef) }
+#' S <- roll_fit_predict_seq(list(mom=mom, vol=vol), Y,
+#'                           steps = 26, horizon = 4,
+#'                           fit_fn = fit_lm, predict_fn = pred_lm,
+#'                           is_periods = 104, oos_periods = 4, step = 4)
+#' head(S)
+#' }
+
+## ---- ml.R ----
+#' One-call backtest wrapper (sequence features)
+#' @inheritParams roll_fit_predict_seq
+#' @inheritParams ml_backtest
+#' @return list: `scores`, `mask`, `weights`, `backtest`.
+#' @export
+#' @examples
+#' \donttest{
+#' # as above, but with steps/horizon and normalize
+#' }
+
+## ---- ml.R ----
+#' Membership stability across dates
+#' @param mask logical mask panel from selection.
+#' @return data.table with `Date, stability` (Jaccard vs previous date).
+#' @export
+
+## ---- ml.R ----
+#' Turnover by date
+#' @param weights weight panel.
+#' @return data.table with `Date, turnover` (0.5 * L1 change).
+#' @export
+
+## ---- ml.R ----
+#' Purged/embargoed K-fold CV for sequence models (inside IS window)
+#'
+#' @param features_list List of feature panels (Date + symbols) for sequences.
+#' @param labels        Label panel aligned to features (Date + symbols).
+#' @param is_start,is_end Inclusive IS window indices (on aligned dates).
+#' @param steps_grid    Integer vector of candidate sequence lengths.
+#' @param horizon       Forecast horizon (periods ahead).
+#' @param fit_fn        Function (X, y) -> model for sequences.
+#' @param predict_fn    Function (model, Xnew) -> numeric scores.
+#' @param k             Number of CV folds.
+#' @param purge         Gap (obs) removed between train/val within folds (default uses steps).
+#' @param embargo       Embargo (obs) after validation to avoid bleed (default uses horizon).
+#' @param group         'pooled', 'per_symbol', or 'per_group'.
+#' @param max_train_samples Optional cap on IS samples per fold.
+#' @param max_val_samples   Optional cap on validation samples per fold.
+#' @param na_action     How to handle NA features ('omit' or 'zero').
+#' @param metric        IC metric ('spearman' or 'pearson').
+#'
+#' @return data.table with columns like `steps`, `folds`, and CV `score`.
+#' @export
+
+## ---- ml.R ----
+#' Walk-forward sweep of tabular configs (window-wise distribution of metrics)
+#' @param max_windows optional limit for speed.
+#' @param features_list List of feature panels.
+#' @param labels Label panel.
+#' @param prices Price panel for backtests.
+#' @param fit_fn,predict_fn Model fit and predict functions.
+#' @param schedule List with elements is, oos, step.
+#' @param grid Named list of parameter vectors to sweep (e.g., top_k, temperature, method, transform).
+#' @param caps Exposure caps (e.g., max_per_symbol/max_per_group).
+#' @param group_map Optional Symbol->Group mapping for group caps/selection.
+#' @param freq Compounding frequency for annualization (e.g., 52 for weekly).
+#' @param cost_bps One-way trading cost in basis points (applied on rebalance).
+#' @param ic_method IC method ('spearman' or 'pearson').
+#' @return data.table with medians/means across OOS windows.
+#' @export
+
+## ---- ml_helper.R ----
+#' @keywords internal
+#' @importFrom stats predict
+
+## ---- ml_helper.R ----
+#' Internal infix: A or B if A is NULL
+#' @keywords internal
+#' @noRd
+
+## ---- ml_helper.R ----
+#' Internal utilities
+#' @keywords internal
+#' @noRd
+
+## ---- ml_helper.R ----
+#' @keywords internal
+#' @noRd
+
+## ---- ml_helper.R ----
+#' Panel-safe binary operation on aligned wide panels
+#'
+#' Applies an elementwise binary operator to two date-aligned wide panels
+#' (first column `Date`, other columns are symbols), preserving the `Date`
+#' column and a consistent symbol set. Supports intersection or union of
+#' column sets; missing entries introduced by `how="union"` are filled.
+#'
+#' @param A,B Data frames with a `Date` column and one column per symbol.
+#' @param op Binary function to apply elementwise (e.g., `*`, `/`, `+`).
+#' @param how Character; `"intersect"` (default) or `"union"` for the set
+#'   of symbol columns to operate on.
+#' @param fill Numeric; value used to fill gaps when `how="union"`.
+#'
+#' @return A data.frame with `Date` and the operated symbol columns.
+#' @examples
+#' \dontrun{
+#' out <- ml_panel_op(mom12_panel, vol_panel, op = `*`)
+#' }
+#' @export
+
+## ---- ml_helper.R ----
+#' Reduce multiple panels with a binary operator
+#'
+#' Folds a list of panels using `ml_panel_op()` across a set of named panels.
+#'
+#' @param features List of panels (each a wide data frame with `Date`).
+#' @param panels Character vector of names in `features` to reduce (length \eqn{\ge}{>=} 2).
+#' @param op Binary function to apply elementwise.
+#' @param how Column-set policy passed to [ml_panel_op()].
+#' @param fill Fill value for `how="union"`.
+#'
+#' @return A data.frame panel (wide) with the reduced result.
+#' @examples
+#' \dontrun{
+#' # product of three panels
+#' prod_panel <- ml_panel_reduce(X, c("mom12","vol","rsi14"), op = `*`)
+#' }
+#' @export
+
+## ---- ml_helper.R ----
+#' Add interaction panels to a feature list
+#'
+#' Builds new panels from existing ones via elementwise operations.
+#' Specification accepts either a shorthand `list(new = c("A","B"))` (defaults to product),
+#' or a structured form `list(new = list(panels=c("A","B","C"), op=`/`, how="intersect", fill=NA))`.
+#'
+#' @param features List of existing panels (wide data frames with `Date`).
+#' @param interactions Named list describing interactions to add.
+#'
+#' @return The input `features` list with additional interaction panels.
+#' @examples
+#' \dontrun{
+#' X2 <- ml_add_interactions(X, list(mom_vol = c("mom12","vol")))
+#' }
+#' @export
+
+## ---- ml_helper.R ----
+#' Prepare tabular features (weekly + aligned daily volatility)
+#'
+#' Constructs a minimal, leakage-safe set of tabular features commonly used
+#' in cross-sectional ML: weekly momentum (12/26/52), RSI(14), distance from
+#' 20-week MA, and daily rolling volatility aligned to weekly dates
+#' (tokens `vol{N}d_walign`, e.g., `"vol20d_walign"`).
+#'
+#' All outputs are **lagged by one period** to avoid look-ahead in backtests.
+#'
+#' @param prices_weekly Wide panel with `Date` and symbol columns (weekly).
+#' @param prices_daily Optional wide panel (daily) if `vol*d_walign` are included.
+#' @param include Character vector of feature tokens to include.
+#' @param interactions Optional named list passed to [ml_add_interactions()].
+#'
+#' @return A named list of panels (each a wide data.frame with `Date`).
+#' @examples
+#' \dontrun{
+#' X <- ml_prepare_features(sample_prices_weekly, sample_prices_daily,
+#'                          include = c("mom12","vol20d_walign","rsi14"))
+#' }
+#' @export
+
+## ---- ml_helper.R ----
+#' Model factory for tabular cross-sectional learners
+#'
+#' Returns a pair of closures `fit(X,y)` / `predict(model, X)` implementing
+#' a chosen learner. Implementations are NA-aware and conservative:
+#' `glmnet` ridge drops rows with any non-finite input; `ranger` and `xgboost`
+#' keep NA in `X` as missing; the linear baseline uses `lm.fit`.
+#'
+#' @param type One of `"ridge"`, `"rf"`, `"xgboost"`, `"linear"`.
+#' @param params List of model parameters (passed to backend; used by xgboost).
+#' @param nrounds Integer boosting rounds (xgboost).
+#' @param ... Additional arguments forwarded to the backend.
+#'
+#' @details
+#' Optional dependencies: `glmnet` (ridge), `ranger` (rf), `xgboost` (xgboost).
+#' If a backend is not available, use `"linear"` or install the package.
+#'
+#' @return A list with functions `fit` and `predict`.
+#' @examples
+#' \dontrun{
+#' ridge <- ml_make_model("ridge")
+#' m <- ridge$fit(X_is, y_is)
+#' s <- ridge$predict(m, X_oos)
+#' }
+#' @export
+
+## ---- ml_helper.R ----
+#' NA-tolerant ensemble blender (row-wise)
+#'
+#' Creates an equal- or user-weighted blend of multiple model objects produced
+#' by [ml_make_model()]. The returned `fit` trains each component; `predict`
+#' combines component predictions with an NA-safe weighted average.
+#'
+#' @param ... Two or more model objects each with `$fit`/`$predict`.
+#' @param weights Optional numeric vector of blend weights (recycled).
+#'
+#' @return A list with `$fit` and `$predict` closures for the ensemble.
+#' @examples
+#' \dontrun{
+#' ens <- ml_make_ensemble(ml_make_model("ridge"),
+#'                         ml_make_model("rf"),
+#'                         ml_make_model("xgboost"))
+#' }
+#' @export
+
+## ---- ml_helper.R ----
+#' Deterministic sequence model factory (GRU/LSTM/CNN1D with linear fallback)
+#'
+#' Returns `fit/predict` closures for sequence models that consume flattened
+#' tabular inputs (n \eqn{\times}{x} (steps \eqn{\times}{x} p)) and internally reshape to (n, steps, p).
+#' If Keras/TensorFlow is unavailable, falls back to a linear baseline so
+#' examples remain runnable on CPU-only machines.
+#'
+#' Determinism knobs: fixed seeds, `TF_DETERMINISTIC_OPS=1`, no shuffle,
+#' `workers=1`, and a fixed `pred_batch_size` to minimise retracing.
+#'
+#' @param type One of `"linear"`, `"gru"`, `"lstm"`, `"cnn1d"`.
+#' @param steps Integer sequence length (e.g., 26 for 6 months of weeks).
+#' @param units Hidden units for GRU/LSTM or filters for CNN1D.
+#' @param dense Optional integer vector of additional dense layers.
+#' @param dropout Dropout rate for recurrent/CNN core.
+#' @param epochs,batch_size Training settings.
+#' @param lr Learning rate.
+#' @param patience Early-stopping patience.
+#' @param seed Integer seed.
+#' @param deterministic Logical; set determinism knobs when TRUE.
+#' @param pred_batch_size Fixed batch size used at prediction time.
+#'
+#' @details
+#' Optional dependencies: `keras` and `tensorflow`. When not available,
+#' the factory returns the linear fallback.
+#'
+#' @return A list with `$fit` and `$predict` closures.
+#' @examples
+#' \dontrun{
+#' seq_gru <- ml_make_seq_model("gru", steps = 26, units = 16, epochs = 12)
+#' }
+#' @export
+
+## ---- ml_helper.R ----
+#' Keep only rows with at least one finite score (rebalance dates)
+#'
+#' Convenience filter used by IC diagnostics to align to formation dates.
+#'
+#' @param scores_dt Wide scores table (`Date` + symbols) or long format coerced.
+#' @return A `data.table` subset containing only rows with any finite score.
+#' @keywords internal
+#' @noRd
+
+## ---- ml_helper.R ----
+#' Rank-IC series computed on score (rebalance) dates
+#'
+#' Wrapper around `ic_series()` that first filters scores to formation dates
+#' using an internal filter that keeps rows where at least one score is finite.
+#'
+#' @param scores_dt Scores table (wide).
+#' @param labels_dt Labels table (wide).
+#' @param method Correlation method; `"spearman"` (default) or `"pearson"`.
+#'
+#' @return A data frame/data.table with `Date` and IC values.
+#' @examples
+#' \dontrun{
+#' ic <- ml_ic_series_on_scores(res_xgb$scores, Y, method = "spearman")
+#' }
+#' @export
+
+## ---- ml_helper.R ----
+#' Rolling rank-IC plot (rebalance dates; leakage-safe)
+#'
+#' Computes the IC time series via [ml_ic_series_on_scores()] and plots the
+#' rolling mean IC over a specified window. Returns the rolling statistics
+#' invisibly for further inspection.
+#'
+#' @param scores_dt Scores (wide).
+#' @param labels_dt Labels (wide).
+#' @param window Integer window length (default 26).
+#' @param method Correlation method; `"spearman"` (default) or `"pearson"`.
+#'
+#' @return (Invisibly) a data frame with `Date`, `roll_mean`, `roll_sd`, `roll_ICIR`.
+#' @examples
+#' \dontrun{
+#' ris <- ml_plot_ic_roll(res_xgb$scores, Y, window = 8L)
+#' }
+#' @export
+
+## ---- ml_helper.R ----
+#' Run multi-horizon ML backtests (pooled or sector-neutral)
+#'
+#' Convenience wrapper around [PortfolioTesteR::ml_backtest()] that repeats the
+#' same specification across multiple horizons, returning a named list of
+#' backtest objects keyed as `"H1w"`, `"H4w"`, `"H13w"`, etc.
+#'
+#' @param features_list Named list of data.tables with factor scores (each with a
+#'   `Date` column and one column per symbol). Typically from
+#'   [PortfolioTesteR::ml_prepare_features()].
+#' @param prices_weekly Wide price table (weekly) with `Date` + one column per
+#'   symbol (adjusted prices). Used both to create labels and run the backtest.
+#' @param horizons Integer vector of horizons in *weeks* (e.g., `c(1L,4L,13L)`).
+#' @param fit_fn,predict_fn Model fit/predict closures as returned by
+#'   [PortfolioTesteR::ml_make_model()].
+#' @param schedule Walk-forward schedule list with elements `is`, `oos`, `step`.
+#' @param transform Feature transform (default `"zscore"`). Passed to
+#'   [PortfolioTesteR::ml_backtest()].
+#' @param selection List describing selection rules (e.g., `list(top_k=20L, max_per_group=3L)`).
+#' @param weighting List describing weighting rules (e.g., `list(method="softmax", temperature=12)`).
+#' @param caps List with exposure caps (e.g., `list(max_per_symbol=0.10, max_per_group=NULL)`).
+#' @param group_mode `"pooled"` or `"per_group"`. If `"per_group"`, you must pass `group_map`.
+#' @param group_map A two-column table with columns `Symbol` and `Group` defining
+#'   the grouping (e.g., sectors) for `"per_group"` mode.
+#' @param initial_capital Numeric. Starting capital for the backtest (default `1e5`).
+#' @param name_prefix Optional string prefixed to each backtest title.
+#' @param seed Optional integer. If provided, the same seed is set before each
+#'   horizon’s backtest call to ensure deterministic tie-breaks.
+#' @param ... Additional arguments forwarded to [PortfolioTesteR::ml_backtest()]
+#'   (kept for future extensibility; no effect if unused).
+#'
+#' @return A named list of backtest objects (as returned by
+#'   [PortfolioTesteR::ml_backtest()]), with names like `"H1w"`, `"H4w"`, … .
+#'
+#' @details
+#' This function does **not** change core behavior; it only removes boilerplate
+#' when running identical specs across horizons and (optionally) grouping
+#' regimes. It preserves all defaults you pass for selection, weighting,
+#' transforms, caps, and schedule.
+#'
+#' @examples
+#' \donttest{
+#' library(PortfolioTesteR)
+#' data(sample_prices_weekly, package = "PortfolioTesteR")
+#'
+#' # Minimal features for the example
+#' X <- ml_prepare_features(
+#'   prices_weekly = sample_prices_weekly,
+#'   include = c("mom12","mom26")
+#' )
+#'
+#' # Simple deterministic model
+#' model <- ml_make_model("linear")
+#' sched <- list(is = 156L, oos = 4L, step = 4L)
+#'
+#' set.seed(42)
+#' bt_list <- ml_backtest_multi(
+#'   features_list = X,
+#'   prices_weekly = sample_prices_weekly,
+#'   horizons = c(1L, 4L),
+#'   fit_fn = model$fit,
+#'   predict_fn = model$predict,
+#'   schedule = sched,
+#'   selection = list(top_k = 5L),
+#'   weighting = list(method = "softmax", temperature = 12),
+#'   caps = list(max_per_symbol = 0.10),
+#'   group_mode = "pooled",
+#'   name_prefix = "Demo ",
+#'   seed = 42
+#' )
+#'
+#' names(bt_list)   # "H1w" "H4w"
+#' }
+#'
+#' @export
+
+## ---- ml_helper.R ----
+#' Multi-horizon wrapper for `ml_backtest()`
+#'
+#' Convenience runner that executes `PortfolioTesteR::ml_backtest()` across
+#' multiple forecast horizons on the same weekly price universe and feature set.
+#' It supports pooled or per-group estimation, fixed selection/weighting/cap
+#' policies, and returns a named list (one element per horizon) with a
+#' `config` attribute to preserve the run settings.
+#'
+#' @param features_list Named list of feature tables (wide by symbol) aligned on
+#'   a weekly grid, each with `Date` and one column per symbol.
+#' @param prices_weekly Wide weekly price table with `Date` and one column per symbol.
+#' @param horizons Integer vector of horizons in weeks, e.g., `c(1L, 4L, 13L)`.
+#' @param fit_fn Function to fit the model on IS: `function(X, y, ...)`.
+#' @param predict_fn Function to score OOS: `function(model, Xnew, ...)`
+#'   returning a numeric vector.
+#' @param schedule List with integer fields `is`, `oos`, `step` (weeks).
+#' @param transform Optional feature transform applied inside `ml_backtest()`;
+#'   default `"zscore"`.
+#' @param selection List of selection options (e.g., `list(top_k = 20L)`).
+#' @param weighting List of weighting options (e.g., `list(method = "softmax", temperature = 12)`).
+#' @param caps List of exposure constraints (e.g., `list(max_per_symbol = 0.10)`).
+#' @param group_mode Estimation mode: `"pooled"` or `"per_group"`.
+#' @param group_map Optional `data.frame` with columns `Symbol` and `Group` when
+#'   `group_mode = "per_group"`.
+#' @param initial_capital Numeric starting capital (passed through to backtest).
+#' @param name_prefix Optional string prefixed to the backtest `name`.
+#' @param seed Optional integer RNG seed for stochastic learners.
+#' @param ... Additional arguments forwarded to `ml_backtest()`.
+#'
+#' @details
+#' For each `h` in `horizons`, the function builds weekly labels via
+#' `PortfolioTesteR::make_labels(prices_weekly, horizon = h, type = "log")` and
+#' calls `PortfolioTesteR::ml_backtest()` with the provided options. The return
+#' value is a list named like `H1w`, `H4w`, … with an attached `config`
+#' attribute storing the call arguments (useful for provenance).
+#'
+#' @return
+#' A named list (`length(horizons)`) of backtest objects as returned by
+#' `ml_backtest()`. The list carries an attribute `config` with the run
+#' settings (`horizons`, `schedule`, `selection`, `weighting`, `caps`,
+#' `transform`, `group_mode`, `seed`, `name_prefix`).
+#'
+#' @seealso [PortfolioTesteR::ml_backtest()], [PortfolioTesteR::make_labels()]
+#' @family Chapter3-helpers
+#' @examples
+#' # Minimal runnable example (fast)
+#' if (requireNamespace("PortfolioTesteR", quietly = TRUE)) {
+#'   library(PortfolioTesteR)
+#'   data(sample_prices_weekly, package = "PortfolioTesteR")
+#'
+#'   # Simple feature: 12-week momentum
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, 12)
+#'   feats <- list(mom12 = mom12)
+#'
+#'   # Trivial learner: use the first feature as the score
+#'   fit_first     <- function(X, y, ...) list()
+#'   predict_first <- function(model, Xnew, ...) as.numeric(Xnew[[1]])
+#'
+#'   sch <- list(is = 52L, oos = 26L, step = 26L)  # short schedule for speed
+#'
+#'   res <- ml_backtest_multi(
+#'     features_list   = feats,
+#'     prices_weekly   = sample_prices_weekly,
+#'     horizons        = c(4L),
+#'     fit_fn          = fit_first,
+#'     predict_fn      = predict_first,
+#'     schedule        = sch,
+#'     selection       = list(top_k = 5L),
+#'     weighting       = list(method = "softmax", temperature = 12),
+#'     caps            = list(max_per_symbol = 0.10),
+#'     group_mode      = "pooled",
+#'     name_prefix     = ""
+#'   )
+#'   names(res)
+#' }
+#'
+#' @export
+#' @importFrom stats setNames
+
+## ---- ml_helper.R ----
+#' Collect diagnostics from two `ml_backtest_multi()` runs
+#'
+#' Builds a compact set of outputs—coverage, IC series, OOS-only rolling IC,
+#' performance tables (Full/Pre/Post), turnover, and a cost sweep—given two
+#' lists of backtests (pooled and per-group) produced by `ml_backtest_multi()`.
+#'
+#' @param bt_pooled_list Named list of backtests (keys like `H4w`, `H13w`)
+#'   produced with `group_mode = "pooled"`.
+#' @param bt_neutral_list Named list of backtests (same keys) produced with
+#'   `group_mode = "per_group"`.
+#' @param weekly_prices Deprecated alias for `prices`; kept for backwards compatibility.
+#' @param horizons Integer vector of horizons (in weeks) expected in the lists.
+#' @param split_date `Date` used to split performance into `Pre`/`Post`.
+#' @param cost_bps Numeric vector of per-rebalance cost levels (in basis points)
+#'   for the turnover-based cost sweep. Default `c(5, 10, 15, 20, 25, 50)`.
+#' @param freq Integer frequency used by `perf_metrics()` (e.g., `52` for weekly).
+#' @param prices Optional price table (preferred). If `NULL`, `weekly_prices` is used.
+#' @param ic_roll_window Integer window length (weeks) for rolling IC on OOS decision dates.
+#'   Default `26L`.
+#' @param mask_scores_to_decision_dates Logical; if `TRUE` (default) scores are
+#'   masked to OOS decision dates only (see [scores_oos_only()]).
+#' @param cost_model Function `(turnover, bps)` returning per-period cost to subtract
+#'   from returns in the sweep. Default scales linearly with turnover.
+#'
+#' @details
+#' Both input lists must have identical horizon keys (`paste0("H", h, "w")`).
+#' Coverage and IC series are computed from stored `scores`; rolling IC is built
+#' on OOS decision dates only; performance is summarised for the full sample
+#' and `Pre`/`Post` relative to `split_date`; turnover is derived from realised
+#' sector-neutral weights; and a turnover-based cost sweep is evaluated on the
+#' sector-neutral run across `cost_bps`.
+#'
+#' @return
+#' A named list with one element per horizon, each containing:
+#' \itemize{
+#'   \item `bt_pooled`, `bt_neutral` — the input backtests;
+#'   \item `coverage` — coverage by date for pooled/neutral;
+#'   \item `ic_series` — raw IC series for pooled/neutral;
+#'   \item `icroll_oos_26w` — rolling IC (OOS-only) for pooled/neutral;
+#'   \item `masked_scores` — OOS-masked score tables for pooled/neutral;
+#'   \item `perf_tables` — performance tables (Full/Pre/Post);
+#'   \item `turnover_neutral` — turnover series for the sector-neutral run;
+#'   \item `cost_sweep_neutral` — performance under gross/net across `cost_bps`.
+#' }
+#'
+#' @seealso [ml_backtest_multi()], [scores_oos_only()], [PortfolioTesteR::perf_metrics()]
+#' @family Chapter3-helpers
+#' @examples
+#' \donttest{
+#' if (requireNamespace("PortfolioTesteR", quietly = TRUE)) {
+#'   library(PortfolioTesteR)
+#'   data(sample_prices_weekly, package = "PortfolioTesteR")
+#'
+#'   # Simple feature
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, 12)
+#'   feats <- list(mom12 = mom12)
+#'
+#'   fit_first     <- function(X, y, ...) list()
+#'   predict_first <- function(model, Xnew, ...) as.numeric(Xnew[[1]])
+#'   sch <- list(is = 52L, oos = 26L, step = 26L)
+#'
+#'   syms <- setdiff(names(sample_prices_weekly), "Date")
+#'   gmap <- data.frame(Symbol = syms,
+#'                      Group  = rep(c("G1","G2"), length.out = length(syms)))
+#'
+#'   bt_pooled  <- ml_backtest_multi(feats, sample_prices_weekly, c(4L),
+#'                                   fit_first, predict_first, sch,
+#'                                   selection = list(top_k = 5L),
+#'                                   weighting = list(method = "softmax", temperature = 12),
+#'                                   caps = list(max_per_symbol = 0.10),
+#'                                   group_mode = "pooled")
+#'   bt_neutral <- ml_backtest_multi(feats, sample_prices_weekly, c(4L),
+#'                                   fit_first, predict_first, sch,
+#'                                   selection = list(top_k = 5L),
+#'                                   weighting = list(method = "softmax", temperature = 12),
+#'                                   caps = list(max_per_symbol = 0.10),
+#'                                   group_mode = "per_group",
+#'                                   group_map = gmap)
+#'
+#'   out <- pt_collect_results(
+#'     bt_pooled_list  = bt_pooled,
+#'     bt_neutral_list = bt_neutral,
+#'     prices          = sample_prices_weekly,
+#'     horizons        = c(4L),
+#'     split_date      = as.Date("2019-01-01"),
+#'     cost_bps        = c(5, 15),
+#'     freq            = 52,
+#'     ic_roll_window  = 13L
+#'   )
+#'   names(out)
+#'   str(out[["H4w"]]$perf_tables)
+#' }
+#' }
+#'
+#' @export
+#' @importFrom data.table as.data.table setorder shift melt fifelse rbindlist
+#' @importFrom stats setNames
+
+## ---- ml_helper.R ----
+#' Mask score tables to out-of-sample decision dates
+#'
+#' Utility used in the chapter’s diagnostics: keep scores only on dates when a
+#' portfolio decision was actually made (non-zero realised weights); set other
+#' dates to `NA`. Inputs are wide by symbol with a `Date` column.
+#'
+#' @param scores_dt Wide table of model scores with columns `Date`, `SYM1`,
+#'   `SYM2`, … (one column per symbol).
+#' @param weights_wide Wide table of realised portfolio weights with columns
+#'   `Date`, `SYM1`, `SYM2`, … (one column per symbol). Decision dates are
+#'   inferred as rows where any symbol weight is non-zero.
+#'
+#' @return
+#' A copy of `scores_dt` where rows not matching decision dates are set to `NA`
+#' (except the `Date` column). If either input is empty, returns `scores_dt[0]`.
+#'
+#' @examples
+#' # Toy example
+#' dates <- as.Date("2020-01-01") + 7*(0:5)
+#' scores <- data.frame(
+#'   Date = dates,
+#'   AAA = seq(0.1, 0.6, length.out = 6),
+#'   BBB = rev(seq(0.1, 0.6, length.out = 6))
+#' )
+#' weights <- data.frame(
+#'   Date = dates,
+#'   AAA  = c(0, 0.1, 0, 0.2, 0, 0.15),
+#'   BBB  = c(0, 0,   0, 0,   0, 0   )
+#' )
+#' scores_oos_only(scores, weights)
+#'
+#' @seealso [pt_collect_results()]
+#' @family Chapter3-helpers
+#' @export
+#' @importFrom data.table as.data.table setorder shift melt fifelse
+
+## ---- optimization.R ----
+#' Calculate Sharpe Ratio with Frequency Detection
+#'
+#' @param bt Backtest result object with $returns and (optionally) $dates
+#' @return Annualized Sharpe ratio
+#' @export
+
+## ---- optimization.R ----
+#' Run Parameter Grid Optimization (safe + ergonomic)
+#'
+#' @param prices Data frame with Date + symbol columns
+#' @param grid   Data frame (each row = a combo) OR a **named list** of vectors
+#' @param builder Function(prices, params, ...) -> weights (Date + symbols)
+#' @param metric  Scoring function(backtest) -> numeric. Defaults to metric_sharpe.
+#' @param name_prefix String prefix for backtest names
+#' @param verbose Logical
+#' @param light_mode Logical: speed-ups in backtest
+#' @param precompute_returns Logical: precompute log-returns once (light_mode only)
+#' @param builder_args List of extra args forwarded to builder (e.g., caches)
+#' @param n_cores Integer (kept for API compatibility; ignored here)
+#' @param fixed Optional named list of **constant** parameters merged into every combo.
+#'   If a name appears in both `grid` and `fixed`, the **fixed value wins** and that
+#'   column is **pruned from the grid** (fewer duplicate combos; clearer counts).
+#' @return param_grid_result
+#' @export
+
+## ---- optimization.R ----
+#' Print a param_grid_result
+#'
+#' @param x A `param_grid_result` object returned by [run_param_grid()].
+#' @param ... Additional arguments passed to methods (ignored).
+#' @return Invisibly returns `x`.
+#' @method print param_grid_result
+#' @export
+
+## ---- optimization.R ----
+#' Internal helper: restore par after plotting
+#' @keywords internal
+#' @noRd
+
+## ---- optimization.R ----
+#' Internal helper: default HCL palette
+#' @keywords internal
+#' @noRd
+
+## ---- optimization.R ----
+#' Internal helper: match facet values by type
+#' @keywords internal
+#' @noRd
+
+## ---- optimization.R ----
+#' Internal helper: union z-limits across multiple heatmaps
+#' @keywords internal
+#' @noRd
+
+## ---- optimization.R ----
+#' Internal helper: compute panel grid (rows x cols)
+#' @keywords internal
+#' @noRd
+
+## ---- optimization.R ----
+#' Internal helper: draw legend colorbar on the right side
+#' @keywords internal
+#' @noRd
+#' @importFrom graphics axis box image mtext
+
+## ---- optimization.R ----
+#' Internal helper: sanitize z for 3D surface
+#' @keywords internal
+#' @noRd
+
+## ---- optimization.R ----
+#' Internal helper: surface colors for persp
+#' @keywords internal
+#' @noRd
+
+## ---- optimization.R ----
+#' Plot Parameter Grid Results (1D/2D/3D and Facets)
+#'
+#' Generic plotter for objects returned by [run_param_grid()]. Supported types:
+#' \itemize{
+#'   \item "line": 1D metric vs one parameter.
+#'   \item "heatmap": 2D heatmap over two parameters.
+#'   \item "surface": 3D surface (persp) over two parameters.
+#'   \item "slices": 2D heatmaps faceted by a third parameter.
+#'   \item "surface_slices": 3D surfaces faceted by a third parameter.
+#'   \item "auto": chosen from the above based on the number of parameters.
+#' }
+#'
+#' @param x A \code{param_grid_result}.
+#' @param y Ignored.
+#' @param type One of "auto","line","heatmap","surface","slices","surface_slices".
+#' @param metric Column name to plot (defaults to "score" if present).
+#' @param params Character vector of parameter columns to use for axes/facets.
+#'   If \code{NULL}, uses all parameter columns detected in \code{x$all_results}.
+#' @param fixed Optional named list of parameter values to condition on.
+#'   Rows not matching are dropped before plotting.
+#' @param agg Aggregation when multiple rows map to a cell:
+#'   "mean","median", or "max".
+#' @param na.rm Logical; drop NA metric rows before plotting.
+#' @param palette Optional color vector used for heatmaps/surfaces.
+#'   Defaults to \code{grDevices::hcl.colors(..., "YlOrRd", rev = TRUE)}.
+#' @param zlim Optional two-element numeric range for color scaling.
+#' @param clip Two quantiles used to winsorize z-limits for stable coloring.
+#' @param main,sub,xlab,ylab Base plotting annotations.
+#' @param ... Additional options depending on \code{type}, e.g.:
+#'   \code{legend}, \code{label_cells}, \code{contour}, \code{mark_best},
+#'   \code{theta}, \code{phi}, \code{shade}, \code{expand}, \code{ticktype},
+#'   \code{shared_zlim}, \code{facet}, \code{facet_values}, \code{ncol},
+#'   \code{debug}, \code{impute_for_surface}.
+#'
+#' @return An invisible list describing the plot (kind/params/zlim/etc.).
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   b <- function(prices, params, ...) {
+#'     weight_equally(filter_top_n(calc_momentum(prices, params$lookback), 10))
+#'   }
+#'   opt <- run_param_grid(
+#'     prices  = sample_prices_weekly,
+#'     grid    = list(lookback = c(8, 12, 26)),
+#'     builder = b
+#'   )
+#'   plot(opt, type = "line", params = "lookback")
+#' }
+#'
+#' @seealso [run_param_grid()], [print.param_grid_result()]
+#'
+#' @method plot param_grid_result
+#' @export
+#' @importFrom grDevices hcl.colors
+#' @importFrom graphics axis box image layout mtext persp plot.new points title
+#' @importFrom stats median quantile
+#' @importFrom utils head
+
+## ---- performance_analytics.R ----
+#' Analyze Backtest Performance with Daily Monitoring
+#'
+#' @description
+#' Calculates comprehensive performance metrics using daily price data for
+#' enhanced accuracy. Provides risk-adjusted returns, drawdown analysis,
+#' and benchmark comparison even when strategy trades at lower frequency.
+#'
+#' @param backtest_result Result object from run_backtest()
+#' @param daily_prices Daily price data including all portfolio symbols
+#' @param benchmark_symbol Symbol for benchmark comparison (default: "SPY")
+#' @param rf_rate Annual risk-free rate for Sharpe/Sortino (default: 0)
+#' @param confidence_level Confidence level for VaR/CVaR (default: 0.95)
+#'
+#' @return performance_analysis object with metrics and daily tracking
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' data("sample_prices_daily")
+#'
+#' # Use overlapping symbols; cap to 3
+#' syms_all <- intersect(names(sample_prices_weekly)[-1], names(sample_prices_daily)[-1])
+#' stopifnot(length(syms_all) >= 1)
+#' syms <- syms_all[seq_len(min(3L, length(syms_all)))]
+#'
+#' # Subset weekly (strategy) and daily (monitoring) to the same symbols
+#' P <- sample_prices_weekly[, c("Date", syms), with = FALSE]
+#' D <- sample_prices_daily[,  c("Date", syms), with = FALSE]
+#'
+#' # Simple end-to-end example
+#' mom <- calc_momentum(P, lookback = 12)
+#' sel <- filter_top_n(mom, n = 3)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(P, W)
+#'
+#' # Pick a benchmark that is guaranteed to exist in D
+#' perf <- analyze_performance(res, D, benchmark_symbol = syms[1])
+#' print(perf)
+#' summary(perf)
+
+## ---- performance_analytics.R ----
+#' Daily equity curve from positions and daily prices
+#'
+#' Carries portfolio positions (from a weekly or lower-frequency backtest)
+#' forward to daily dates, multiplies by daily prices, and combines with cash
+#' to produce a daily portfolio value series for monitoring and analytics.
+#'
+#' @param positions A `data.frame`/`data.table` of portfolio positions with
+#'   columns `Date` + symbols. Values should be the backtest's **position
+#'   inventory** per symbol at each rebalance date (typically shares or notional
+#'   units consistent with your backtest's accounting).
+#' @param daily_prices A `data.frame`/`data.table` of **daily** prices with
+#'   columns `Date` + the same symbol set present in `positions` (at least the
+#'   intersection).
+#' @param strategy_dates A `Date` vector of the backtest's decision/rebalance
+#'   calendar (e.g., `backtest_result$dates`).
+#' @param initial_capital Numeric scalar. Starting cash used for days **before**
+#'   the first position exists (typically `backtest_result$initial_capital`).
+#' @param cash_values Optional numeric vector of cash balances at the strategy
+#'   dates (e.g., `backtest_result$cash`). If `NULL`, leading days are treated
+#'   as all-cash (= `initial_capital`) and post-rebalance cash defaults to 0.
+#'
+#' @return A list with components:
+#' \itemize{
+#'   \item \code{dates} Daily dates within the strategy span.
+#'   \item \code{portfolio_values} Daily total portfolio value (positions + cash).
+#'   \item \code{positions_value} Daily mark-to-market of positions only.
+#'   \item \code{cash} Daily carried cash series.
+#' }
+#'
+#' @examples
+#' \donttest{
+#'   # Minimal end-to-end example using bundled data and a simple weekly backtest
+#'   library(PortfolioTesteR)
+#'   data(sample_prices_weekly); data(sample_prices_daily)
+#'
+#'   # Build a tiny strategy: momentum -> top-3 -> equal weights
+#'   mom <- calc_momentum(sample_prices_weekly, lookback = 12)
+#'   sel <- filter_top_n(mom, n = 3)
+#'   W   <- weight_equally(sel)
+#'   bt  <- run_backtest(sample_prices_weekly, W, name = "Demo")
+#'
+#'   # Compute daily monitoring values from positions + cash
+#'   vals <- calculate_daily_values(
+#'     positions       = bt$positions,
+#'     daily_prices    = sample_prices_daily,
+#'     strategy_dates  = bt$dates,
+#'     initial_capital = bt$initial_capital,
+#'     cash_values     = bt$cash
+#'   )
+#'
+#'   # Quick sanity checks
+#'   head(vals$dates)
+#'   head(vals$portfolio_values)
+#' }
+#'
+#' @export
+
+## ---- performance_analytics.R ----
+#' Calculate Enhanced Performance Metrics
+#'
+#' @description
+#' Computes comprehensive risk and return metrics from daily data including
+#' Sharpe, Sortino, Calmar ratios, VaR, CVaR, and tail risk measures.
+#'
+#' @param daily_values Daily portfolio values
+#' @param daily_returns Daily return series
+#' @param rf_rate Risk-free rate
+#' @param confidence_level VaR/CVaR confidence level
+#'
+#' @return List of performance metrics
+#' @keywords internal
+
+## ---- performance_analytics.R ----
+#' Benchmark-relative performance statistics
+#'
+#' Computes standard benchmark-relative metrics (e.g., correlation, beta, alpha, tracking error,
+#' information ratio) by aligning portfolio returns with benchmark returns derived from prices.
+#'
+#' @param portfolio_returns A numeric vector of portfolio simple returns aligned to \code{dates}.
+#' @param benchmark_prices A data frame (Date + symbols) of adjusted benchmark prices at the
+#'   same cadence as \code{dates}.
+#' @param dates A vector of \code{Date} values used to align \code{portfolio_returns}
+#'   with \code{benchmark_prices}.
+#' @param benchmark_symbol Character scalar giving the column name (symbol) in \code{benchmark_prices}
+#'   to use as the benchmark.
+#'
+#' @return A list or data frame with benchmark-relative statistics according to the package's
+#'   conventions, including correlation, beta, alpha, tracking error, and information ratio.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, lookback = 12)
+#'   sel10 <- PortfolioTesteR::filter_top_n(mom12, n = 5)
+#'   w_eq  <- PortfolioTesteR::weight_equally(sel10)
+#'   pr    <- PortfolioTesteR::portfolio_returns(w_eq, sample_prices_weekly)
+#'
+#'   # Use SPY as the benchmark
+#'   bench <- sample_prices_weekly[, c("Date", "SPY")]
+#'   res <- analyze_vs_benchmark(
+#'     pr$portfolio_return,
+#'     bench,
+#'     dates = pr$Date,
+#'     benchmark_symbol = "SPY"
+#'   )
+#'   res
+#' }
+#'
+#' @export
+
+## ---- performance_analytics.R ----
+#' Period-level summary statistics
+#'
+#' Aggregates portfolio results by calendar period and computes standard statistics
+#' for each period. Provide at least one of `returns` or `values`.
+#'
+#' @param dates Date vector aligned to `returns` / `values`.
+#' @param returns Numeric simple returns aligned to `dates` (optional).
+#' @param values Numeric equity values aligned to `dates` (optional).
+#' @param period "monthly", "quarterly", or "yearly".
+#' @param na_rm Logical; remove NAs inside per-period aggregations.
+#' @return data.frame with period keys and columns: ret, start_value, end_value, n_obs.
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, lookback = 12)
+#'   sel5  <- PortfolioTesteR::filter_top_n(mom12, n = 5)
+#'   w_eq  <- PortfolioTesteR::weight_equally(sel5)
+#'   pr    <- PortfolioTesteR::portfolio_returns(w_eq, sample_prices_weekly)
+#'   val   <- 1e5 * cumprod(1 + pr$portfolio_return)
+#'   out   <- analyze_by_period(
+#'     dates   = pr$Date,
+#'     returns = pr$portfolio_return,
+#'     values  = val,
+#'     period  = "monthly"
+#'   )
+#'   head(out)
+#' }
+#' @export
+
+## ---- performance_analytics.R ----
+#' Calculate Drawdown Time Series
+#'
+#' @description
+#' Computes drawdown series from portfolio values.
+#'
+#' @param values Numeric vector of portfolio values
+#'
+#' @return Numeric vector of drawdowns (as negative percentages)
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' sel <- filter_top_n(momentum, n = 10)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(sample_prices_weekly, W)
+#' dd_series <- calculate_drawdown_series(res$portfolio_values)
+#' dd_stats  <- analyze_drawdowns(dd_series, res$returns)
+
+## ---- performance_analytics.R ----
+#' Analyze Drawdown Characteristics
+#'
+#' @description
+#' Detailed analysis of drawdown periods including depth, duration, and recovery.
+#'
+#' @param drawdowns Drawdown series (negative values)
+#' @param returns Return series for additional metrics
+#'
+#' @return List with drawdown statistics
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weights <- weight_equally(selected)
+#' result <- run_backtest(sample_prices_weekly, weights)
+#' dd_analysis <- analyze_drawdowns(result$portfolio_value, result$dates)
+
+## ---- performance_analytics.R ----
+#' Detect Data Frequency from Dates
+#'
+#' @description
+#' Automatically detects whether data is daily, weekly, monthly, or
+#' quarterly based on date spacing.
+#'
+#' @param dates Vector of Date objects
+#'
+#' @return Character string: "daily", "weekly", "monthly", or "quarterly"
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' freq <- get_data_frequency(sample_prices_weekly$Date)
+
+## ---- performance_analytics.R ----
+#' Validate Performance Analysis Inputs
+#'
+#' @description
+#' data("sample_prices_weekly")
+#' Checks that backtest result and daily prices are properly formatted
+#' with matching symbols and appropriate date coverage.
+#'
+#' @param backtest_result Backtest result object
+#' data("sample_prices_weekly")
+#' @param daily_prices Daily price data
+#' @param benchmark_symbol Benchmark symbol
+#'
+#' @return TRUE if valid, stops with error if not
+#' @keywords internal
+
+## ---- performance_analytics.R ----
+#' Print Performance Analysis Results
+#'
+#' @description
+#' S3 method for printing performance analysis with key metrics including
+#' risk-adjusted returns, drawdown statistics, and benchmark comparison.
+#'
+#' @param x performance_analysis object
+#' @param ... Additional arguments (unused)
+#'
+#' @return Invisible copy of x
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' data("sample_prices_daily")
+#' syms_all <- intersect(names(sample_prices_weekly)[-1], names(sample_prices_daily)[-1])
+#' syms <- syms_all[seq_len(min(3L, length(syms_all)))]
+#' P <- sample_prices_weekly[, c("Date", syms), with = FALSE]
+#' D <- sample_prices_daily[,  c("Date", syms), with = FALSE]
+#' mom <- calc_momentum(P, lookback = 12)
+#' sel <- filter_top_n(mom, n = 3)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(P, W)
+#' perf <- analyze_performance(res, D, benchmark_symbol = syms[1])
+#' print(perf)  # or just: perf
+
+## ---- performance_analytics.R ----
+#' Plot Performance Analysis Results
+#'
+#' @description
+#' S3 method for visualizing performance metrics. Supports multiple plot
+#' types including summary dashboard, return distributions, risk evolution,
+#' and rolling statistics.
+#'
+#' @param x performance_analysis object
+#' @param type Plot type: "summary", "returns", "risk", "drawdown"
+#' @param ... Additional plotting parameters
+#'
+#' @return NULL (creates plot)
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' data("sample_prices_daily")
+#' syms_all <- intersect(names(sample_prices_weekly)[-1], names(sample_prices_daily)[-1])
+#' syms <- syms_all[seq_len(min(3L, length(syms_all)))]
+#' P <- sample_prices_weekly[, c("Date", syms), with = FALSE]
+#' D <- sample_prices_daily[,  c("Date", syms), with = FALSE]
+#' mom <- calc_momentum(P, lookback = 12)
+#' sel <- filter_top_n(mom, n = 3)
+#' W   <- weight_equally(sel)
+#' res <- run_backtest(P, W)
+#' perf <- analyze_performance(res, D, benchmark_symbol = syms[1])
+#' if (interactive()) {
+#'   plot(perf, type = "summary")
+#' }
+
+## ---- PortfolioTesteR-package.R ----
+#' @keywords internal
+
+## ---- PortfolioTesteR-package.R ----
+#' @importFrom data.table .SD
+#' @importFrom data.table :=
+#' @importFrom data.table as.data.table
+#' @importFrom data.table copy
+#' @importFrom data.table data.table
+#' @importFrom data.table dcast
+#' @importFrom data.table fread
+#' @importFrom data.table frollapply
+#' @importFrom data.table frollmean
+#' @importFrom data.table is.data.table
+#' @importFrom data.table rbindlist
+#' @importFrom data.table setDT
+#' @importFrom data.table setkey
+#' @importFrom data.table setnames
+#' @importFrom data.table setorder
+#' @importFrom data.table shift
+#' @importFrom graphics abline
+#' @importFrom graphics barplot
+#' @importFrom graphics grid
+#' @importFrom graphics hist
+#' @importFrom graphics legend
+#' @importFrom graphics lines
+#' @importFrom graphics par
+#' @importFrom graphics plot
+#' @importFrom graphics text
+#' @importFrom stats acf
+#' @importFrom stats approx
+#' @importFrom stats as.dist
+#' @importFrom stats as.formula
+#' @importFrom stats cor
+#' @importFrom stats cov
+#' @importFrom stats cov2cor
+#' @importFrom stats dist
+#' @importFrom stats hclust
+#' @importFrom stats IQR
+#' @importFrom stats median
+#' @importFrom stats na.omit
+#' @importFrom stats qqline
+#' @importFrom stats qqnorm
+#' @importFrom stats quantile
+#' @importFrom stats sd
+#' @importFrom stats setNames
+#' @importFrom stats var
+#' @importFrom TTR CCI
+#' @importFrom TTR RSI
+#' @importFrom utils head
+#' @importFrom utils tail
+#' @importFrom utils write.csv
+#' @importFrom zoo index
+
+## ---- risk_analysis.R ----
+#' Convert Continuous Indicator to Discrete Regimes
+#'
+#' @description
+#' Transforms continuous indicators into discrete regime categories.
+#'
+#' @param indicator Numeric vector or data frame with indicator values
+#' @param breakpoints Numeric vector of breakpoints
+#' @param labels Optional character vector of regime names
+#' @param use_percentiles Use percentiles instead of fixed breakpoints (default: FALSE)
+#'
+#' @return Integer vector of regime classifications
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, 10)
+#' # Create VIX-like indicator from volatility
+#' vol <- calc_rolling_volatility(sample_prices_weekly, lookback = 20)
+#' vix_proxy <- vol$SPY * 100  # Scale to VIX-like values
+#' regimes <- create_regime_buckets(vix_proxy, c(15, 25))
+
+## ---- technical_indicators.R ----
+#' Calculate Price Momentum
+#'
+#' @description
+#' Calculates momentum as the percentage change in price over a specified
+#' lookback period. Optimized using column-wise operations (25x faster).
+#'
+#' @param data A data.frame or data.table with Date column and price columns
+#' @param lookback Number of periods for momentum calculation (default: 12)
+#'
+#' @return Data.table with momentum values (0.1 = 10% increase)
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+
+## ---- technical_indicators.R ----
+#' Calculate Distance from Reference
+#'
+#' @description
+#' data("sample_prices_weekly")
+#' Calculates percentage distance between prices and reference values
+#' (typically moving averages).
+#'
+#' @param price_df Data frame with price data
+#' @param reference_df Data frame with reference values (same structure)
+#'
+#' @return Data.table with percentage distances
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' data("sample_prices_weekly")
+#' distance <- calc_distance(sample_prices_weekly, ma20)
+
+## ---- technical_indicators.R ----
+#' Calculate Moving Average
+#'
+#' @description
+#' Calculates simple moving average for each column in the data.
+#'
+#' @param data Data frame with Date column and price columns
+#' @param window Number of periods for moving average (default: 20)
+#'
+#' @return Data.table with moving average values
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' ma20 <- calc_moving_average(sample_prices_weekly, window = 20)
+
+## ---- technical_indicators.R ----
+#' Calculate Stochastic D Indicator
+#'
+#' @description
+#' Calculates the Stochastic D indicator for momentum analysis.
+#' The %D line is the smoothed version of %K, commonly used for
+#' momentum signals in range 0-100.
+#'
+#' @param data Price data with Date column and symbol columns
+#' @param k Lookback period for stochastic K calculation
+#' @param d Smoothing period for D line
+#'
+#' @return Data.table with Stochastic D values for each symbol
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' data(sample_prices_weekly)
+#' data("sample_prices_weekly")
+#' stoch_d <- calc_stochastic_d(sample_prices_weekly, k = 14, d = 3)
+#' head(stoch_d)
+
+## ---- technical_indicators.R ----
+#' Calculate Relative Strength Index (RSI)
+#'
+#' @description
+#' Calculates RSI for each column. RSI ranges from 0-100.
+#' Above 70 indicates overbought, below 30 indicates oversold.
+#'
+#' @param data Data frame with Date column and price columns
+#' @param period RSI period (default: 14)
+#'
+#' @return Data.table with RSI values (0-100 range)
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' rsi <- calc_rsi(sample_prices_weekly, period = 14)
+#' overbought <- filter_above(rsi, 70)
+
+## ---- technical_indicators.R ----
+#' Calculate Commodity Channel Index (CCI)
+#'
+#' @description
+#' Calculates CCI using closing prices. CCI measures deviation from average price.
+#' Values above 100 indicate overbought, below -100 indicate oversold.
+#'
+#' @param data Data frame with Date column and price columns
+#' @param period CCI period (default: 20)
+#'
+#' @return Data.table with CCI values
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' cci <- calc_cci(sample_prices_weekly, period = 20)
+
+## ---- technical_indicators.R ----
+#' Stochastic RSI (StochRSI) for multiple price series
+#'
+#' Computes Stochastic RSI (%K) per column over a rolling window, returning
+#' values in \[0, 1\]. For each symbol, RSI is computed with [TTR::RSI()] over
+#' `rsi_length` periods; then StochRSI is
+#' \eqn{(RSI_t - \min RSI_{t-L+1:t}) / (\max RSI_{t-L+1:t} - \min RSI_{t-L+1:t})},
+#' where \eqn{L} is `stoch_length`. If the range is zero the value is handled
+#' per `on_const_window` (default `"zero"`).
+#'
+#' @param data A `data.frame` or `data.table` with a `Date` column and one
+#'   price column per symbol (wide format).
+#' @param length Integer lookback used when `rsi_length`/`stoch_length` are NULL. Default `14`.
+#' @param rsi_length Optional integer RSI lookback. Default: `length`.
+#' @param stoch_length Optional integer stochastic window. Default: `length`.
+#' @param on_const_window How to handle windows where `maxRSI == minRSI`?
+#'   One of `"zero"` (set to 0), `"na"` (leave `NA`). Default `"zero"`.
+#'
+#' @return A `data.table` with `Date` and symbol columns containing StochRSI
+#'   in \[0, 1\], with leading `NA`s for warmup.
+#'
+#' @seealso [TTR::RSI()], [calc_momentum()], [calc_moving_average()],
+#'   [filter_top_n()], [weight_by_risk_parity()]
+#'
+#' @examples
+#' data(sample_prices_weekly)
+#' s <- calc_stochrsi(sample_prices_weekly, length = 14)
+#' head(s)
+#'
+#' @importFrom TTR RSI runMin runMax
+#' @export
+
+## ---- technical_indicators.R ----
+#' Rolling correlation of each symbol to a benchmark
+#'
+#' Computes rolling correlations between each symbol and a benchmark series
+#' (e.g., `SPY`) using simple returns over a fixed lookback window.
+#'
+#' @param data A `data.frame` or `data.table` with a `Date` column and one
+#'   column per symbol containing prices. Must include `benchmark_symbol`.
+#' @param benchmark_symbol Character, the benchmark column name (default `"SPY"`).
+#' @param lookback Integer window size (>= 2) for rolling correlations.
+#' @param min_periods Minimum number of valid observations within the window
+#'   to compute a correlation. Default is `ceiling(lookback * 0.67)`.
+#' @param method Correlation method, `"pearson"` (default) or `"spearman"`.
+#'
+#' @return A `data.table` with `Date` and one column per non-benchmark symbol,
+#'   containing rolling correlations. Insufficient data yields `NA`s.
+#'
+#' @details Returns are computed as simple returns \eqn{(P_t - P_{t-1})/P_{t-1}}.
+#'   Windows with fewer than `min_periods` valid pairs are marked `NA`.
+#'
+#' @examples
+#' data(sample_prices_weekly)
+#' corr <- calc_rolling_correlation(
+#'   data = sample_prices_weekly,
+#'   benchmark_symbol = "SPY",
+#'   lookback = 20
+#' )
+#' head(corr)
+#'
+#' @seealso [calc_momentum()], [calc_rolling_volatility()]
+#' @importFrom stats cor
+#' @export
+
+## ---- technical_indicators.R ----
+#' Calculate Rolling Volatility
+#'
+#' @description
+#' Calculates rolling volatility using various methods including standard deviation,
+#' range-based, MAD, or absolute returns. Supports different lookback periods.
+#'
+#' @param data Data frame with Date column and price columns
+#' @param lookback Number of periods for rolling calculation (default: 20)
+#' @param method Volatility calculation method: "std", "range", "mad", or "abs_return"
+#'
+#' @return Data frame with Date column and volatility values for each symbol
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' # Standard deviation volatility
+#' vol <- calc_rolling_volatility(sample_prices_weekly, lookback = 20)
+#' # Range-based volatility
+#' vol_range <- calc_rolling_volatility(sample_prices_weekly, lookback = 20, method = "range")
+
+## ---- utils.R ----
+#' Safe Division with NA and Zero Handling
+#'
+#' @description
+#' Performs division with automatic handling of NA values, zeros, and infinity.
+#' Returns 0 for division by zero and NA cases.
+#'
+#' @param numerator Numeric vector
+#' @param denominator Numeric vector
+#'
+#' @return Numeric vector with safe division results
+#' @export
+#' @examples
+#' safe_divide(c(10, 0, NA, 5), c(2, 0, 5, NA))  # Returns c(5, 0, 0, 0)
+
+## ---- utils.R ----
+#' Safe ANY Operation with NA Handling
+#'
+#' @description
+#' Performs any() operation that returns FALSE when all values are NA
+#' instead of NA.
+#'
+#' @param x Logical vector
+#' @param ... Additional arguments passed to any()
+#'
+#' @return Logical value (never NA)
+#' @keywords internal
+
+## ---- utils.R ----
+#' Ensure Data.Table Without Mutation
+#'
+#' @description
+#' Converts input to data.table if needed, always returning a copy
+#' to prevent accidental data mutation. Core safety function used
+#' throughout the library.
+#'
+#' @param data Data.frame or data.table
+#'
+#' @return Copy of data as data.table
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' dt <- ensure_dt_copy(sample_prices_weekly)  # Safe to modify dt
+
+## ---- utils.R ----
+#' Convert Conditions to Selection Format
+#'
+#' @description
+#' Converts condition matrices or data frames to standard selection format
+#' with Date column and binary values. Handles NA by converting to 0.
+#'
+#' @param condition_matrix Matrix or data frame with conditions
+#' @param date_column Optional Date vector if not in input
+#'
+#' @return Data.table in selection format (Date + binary columns)
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' above_ma <- filter_above(calc_distance(sample_prices_weekly, ma20), 0)
+#' selection <- as_selection(above_ma, sample_prices_weekly$Date)
+
+## ---- utils.R ----
+#' Align Data to Strategy Timeframe
+#'
+#' @description
+#' Aligns higher-frequency data to match strategy timeframe.
+#'
+#' @param high_freq_data Data frame to align
+#' @param low_freq_dates Date vector from strategy
+#' @param method Alignment method: "forward_fill", "nearest", or "interpolate"
+#'
+#' @return Aligned data frame
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' data("sample_prices_daily")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, 10)
+#' # Create a stability signal from daily data
+#' daily_vol <- calc_rolling_volatility(sample_prices_daily, lookback = 20)
+#' stability_signal <- align_to_timeframe(daily_vol, sample_prices_weekly$Date)
+#' weights <- weight_by_signal(selected, stability_signal)
+
+## ---- utils.R ----
+#' Invert Signal Values for Preference Reversal
+#'
+#' @description
+#' Transforms signal values using (1 - value) to reverse preference direction.
+#' Useful when high values indicate something to avoid. For example, inverting
+#' volatility makes low-vol stocks appear as high signals.
+#'
+#' @param signal_df Data frame with Date column and signal columns
+#'
+#' @return Data frame with inverted signal values
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' # Prefer low volatility stocks
+#' volatility <- calc_rolling_volatility(sample_prices_weekly, 20)
+#' stability_signal <- invert_signal(volatility)
+#' # Select top 10 momentum stocks first
+#' momentum <- calc_momentum(sample_prices_weekly, 12)
+#' selected <- filter_top_n(momentum, 10)
+#' # Weight by inverted volatility (low vol = high weight)
+#' weights <- weight_by_signal(selected, stability_signal)
+
+## ---- utils.R ----
+#' Internal helper: simple coalesce
+#' @keywords internal
+#' @noRd
+
+## ---- utils.R ----
+#' Internal helper: coalesce limited to NULL or NA
+#' @keywords internal
+#' @noRd
+
+## ---- utils.R ----
+#' Internal helper: detect sampling frequency (per year)
+#' @keywords internal
+#' @noRd
+
+## ---- utils.R ----
+#' Internal helper: reject cadence/timeframe knobs in grids
+#' @keywords internal
+#' @noRd
+
+## ---- utils.R ----
+#' Internal helper: robust weights validator and aligner
+#' @keywords internal
+#' @noRd
+
+## ---- utils.R ----
+#' Volatility targeting (row-wise) with optional down-only cap
+#'
+#' Scales each row of a wide weight table (`Date + symbols`) so the estimated
+#' annualised portfolio volatility matches a target. Volatility is estimated
+#' from a rolling covariance of simple asset returns computed from `prices`.
+#'
+#' Weights decided at t-1 apply to returns over t.
+#'
+#' @param weights data.frame/data.table with columns: `Date`, then one column per symbol.
+#' @param prices data.frame/data.table of adjusted prices at the same cadence as `weights`:
+#'   first column `Date`, remaining columns one per symbol (matching weight symbols).
+#' @param lookback Integer window length (in periods) for the rolling covariance. Default 26.
+#' @param target_annual Annualised volatility target (e.g., 0.12 for 12%). Must be > 0.
+#' @param periods_per_year Number of periods per year used for annualisation (e.g., 52 for weekly).
+#' @param cap If TRUE (default), scale down only: exposure is reduced when the
+#'   estimated vol exceeds the target, and untouched otherwise. In this down-only mode,
+#'   the function adds/overwrites a `CASH` column equal to
+#'   `1 - rowSums(pmax(scaled_weights, 0))` so that symbols + CASH is approximately 1.
+#'   If FALSE, the scaler may be > 1 (leverage allowed) and no `CASH` is added.
+#'
+#' @return A `data.table` with the same `Date` and symbol columns as `weights`
+#'   (plus `CASH` when `cap = TRUE`).
+#'
+#' @details
+#' The covariance at row i is computed from the last `lookback` rows of simple
+#' returns up to i (inclusive), estimated on the intersection of symbols present
+#' in both `weights` and `prices`. The row scaler is
+#' `s_i = min(1, target_vol / est_vol_i)` when `cap = TRUE`, and
+#' `s_i = target_vol / est_vol_i` when `cap = FALSE`, with safeguards for zero or
+#' non-finite variances.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, 12)
+#'   sel10 <- PortfolioTesteR::filter_top_n(mom12, 10)
+#'   w_eq  <- PortfolioTesteR::weight_equally(sel10)
+#'
+#'   w_vt  <- vol_target(w_eq, sample_prices_weekly, lookback = 26,
+#'                       target_annual = 0.12, periods_per_year = 52, cap = TRUE)
+#'   head(w_vt)
+#' }
+#'
+#' @export
+
+## ---- utils.R ----
+#' Cap per-symbol and per-group exposures, with optional renormalization
+#'
+#' Row-wise caps on a wide weights table (`Date` + symbols):
+#' \enumerate{
+#'   \item per-symbol cap (`max_per_symbol`)
+#'   \item optional per-group cap (`max_per_group`) using `group_map`
+#' }
+#'
+#' Negatives are clamped to 0 unless `allow_short = TRUE`.
+#'
+#' Renormalization options:
+#' \itemize{
+#'   \item \code{renormalize = "none"}: leave gross (sum of positive weights) as is.
+#'   \item \code{renormalize = "down"}: if gross > 1, scale down so gross == 1.
+#'   \item \code{renormalize = "both"}: if 0 < gross != 1, scale so gross == 1.
+#' }
+#'
+#' The argument \code{renorm} (logical) is a deprecated alias;
+#' \code{TRUE} behaves like \code{renormalize = "both"}.
+#'
+#' The \code{caps} list form is supported:
+#' \describe{
+#'   \item{max_per_symbol}{Maximum absolute weight per symbol (0-1).}
+#'   \item{max_per_group}{Maximum gross weight per group (0-1).}
+#'   \item{group_map}{Named character vector mapping \code{symbol -> group}.}
+#' }
+#'
+#' @param weights data.frame/data.table: columns `Date`, then symbols.
+#' @param max_per_symbol numeric scalar or named vector (absolute cap per symbol).
+#' @param group_map optional named character vector or data.frame(`symbol`,`group`).
+#' @param max_per_group optional numeric scalar (per-group gross cap).
+#' @param allow_short logical; if `FALSE` clamp negatives to 0.
+#' @param renormalize character: one of `"none"`, `"down"`, `"both"`. Default `"none"`.
+#' @param renormalize_down logical; deprecated alias for down-only (kept for compatibility).
+#' @param renorm logical; deprecated alias; if `TRUE` acts like `renormalize="both"`.
+#' @param cash_col optional character; if provided, set to `1 - sum(pmax(w,0))`.
+#' @param caps optional list; alternative to split args (see details above).
+#' @return data.table of capped (and optionally renormalized) weights.
+#' @export
+
+## ---- utils.R ----
+#' Limit per-date selections to top-K (legacy API)
+#'
+#' Legacy selector used across examples/vignettes. Works on a WIDE table
+#' (`Date` + one column per symbol) and returns a WIDE logical mask with at
+#' most `max_positions` TRUE values per row.
+#'
+#' If `ranking_signal` is supplied, it must have **the same shape** and columns
+#' as `selection_df`; the function keeps the top-`K` (largest) scores among
+#' the *currently selected* columns in that row. If `ranking_signal` is `NULL`,
+#' it falls back to the values in `selection_df` (if numeric), otherwise keeps
+#' the first `K` selected symbols in column order (deterministic).
+#'
+#' @param selection_df data.frame/data.table with columns: `Date`, then one
+#'   column per symbol; logical (preferred) or numeric (non-NA/ >0 means selected).
+#' @param max_positions positive integer, maximum selections to keep per row.
+#' @param ranking_signal optional data.frame/data.table, same dims & columns as
+#'   `selection_df`, numeric scores used to rank within the selected set.
+#' @param verbose logical; if `TRUE`, prints minor diagnostics. Default `FALSE`.
+#'
+#' @return A `data.table` with the same columns as `selection_df`, where symbol
+#'   columns are logical and at most `max_positions` are TRUE in each row.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   mom12 <- PortfolioTesteR::calc_momentum(sample_prices_weekly, 12)  # WIDE numeric
+#'   sel10 <- PortfolioTesteR::filter_top_n(mom12, 10)                  # WIDE logical/numeric
+#'   # Ensure logical mask
+#'   syms <- setdiff(names(sel10), "Date")
+#'   sel_mask <- data.table::as.data.table(sel10)
+#'   sel_mask[, (syms) := lapply(.SD, function(z) as.logical(as.integer(z))), .SDcols = syms]
+#'
+#'   # Keep at most 10 per date using momentum as the ranking signal
+#'   lim <- limit_positions(selection_df = sel_mask, max_positions = 10L,
+#'                          ranking_signal = mom12, verbose = FALSE)
+#'   head(lim)
+#' }
+#'
+#' @export
+
+## ---- walk_forward.R ----
+#' Walk-Forward Optimization Analysis
+#'
+#' @description
+#' Runs rolling IS/OOS optimization, reselects params each window, and
+#' backtests OOS performance (optionally with warmup tails).
+#'
+#' @param prices Data frame with Date column and symbol columns
+#' @param grid   Data frame OR named list; each row/combination is a parameter set
+#' @param builder Function(prices, params, ...) -> weights data.frame (Date + assets)
+#' @param metric Function(backtest_result) -> scalar score (higher is better).
+#'               Defaults to \code{metric_sharpe} if omitted/NULL.
+#' @param is_periods Integer, number of in-sample periods
+#' @param oos_periods Integer, number of out-of-sample periods
+#' @param step Integer, step size for rolling windows (default = oos_periods)
+#' @param warmup_periods Integer, warmup periods appended before each OOS
+#' @param verbose Logical, print progress
+#' @param light_mode Logical, passed to run_param_grid (kept for compatibility)
+#' @param precompute_all Logical, precompute indicators once and slice per window
+#' @param builder_args List, extra args passed to builder (e.g., indicator_cache)
+#' @param n_cores Integer (kept for API compatibility; ignored here)
+#'
+#' @return An object of class \code{wf_optimization_result}.
+#' @export
+
+## ---- walk_forward.R ----
+#' Create Window Splits for Walk-Forward
+#' @keywords internal
+
+## ---- walk_forward.R ----
+#' Stitch Out-of-Sample Results (overlap-safe)
+#'
+#' @description
+#' Concatenates OOS backtests and safely compounds returns on overlapping dates.
+#'
+#' @param oos_results List of backtest_result objects, each with $portfolio_values and $dates.
+#' @param initial_value Numeric starting value for the stitched equity curve (default 100000).
+#'
+#' @return Data frame with columns: \code{Date}, \code{Value}.
+#' @importFrom stats aggregate
+#' @export
+
+## ---- walk_forward.R ----
+#' Generate Walk-Forward Report
+#'
+#' @description
+#' Prints a concise summary of a \code{wf_optimization_result}: configuration,
+#' stitched OOS performance, and parameter stability.
+#'
+#' @param wf A \code{wf_optimization_result} object (from \code{run_walk_forward()}).
+#' @param digits Integer; number of digits when printing numeric values (default 4).
+#'
+#' @return Invisibly returns the optimization summary data frame.
+#' @export
+
+## ---- walk_forward.R ----
+#' Print a wf_optimization_result
+#'
+#' @param x A `wf_optimization_result` object returned by [run_walk_forward()].
+#' @param ... Additional arguments passed to methods (ignored).
+#'
+#' @return Invisibly returns `x`.
+#' @export
+#' @method print wf_optimization_result
+#' @aliases print.wf_optimization_result
+
+## ---- walk_forward.R ----
+#' Plot Walk-Forward Results
+#'
+#' Visual diagnostics for a \code{wf_optimization_result} returned by
+#' [run_walk_forward()]. Supported types:
+#' \itemize{
+#'   \item "parameters": best parameter values chosen per window.
+#'   \item "is_oos": in-sample vs out-of-sample scores by window.
+#'   \item "equity": stitched out-of-sample equity curve.
+#'   \item "drawdown": drawdown of the stitched OOS curve.
+#'   \item "windows": per-window bar/line chart of an OOS metric (see \code{metric}).
+#'   \item "stability": summary of parameter stability.
+#'   \item "distributions": distributions of IS/OOS scores across windows.
+#' }
+#'
+#' @param x A \code{wf_optimization_result} from [run_walk_forward()].
+#' @param y Ignored.
+#' @param type One of "parameters","is_oos","equity","drawdown",
+#'   "windows","stability","distributions".
+#' @param param Character vector of parameter names to include for
+#'   "parameters"/"stability"/"distributions". If \code{NULL}, uses all.
+#' @param metric Character; column to plot for "is_oos" or "windows"
+#'   (e.g., "OOS_Return" or "OOS_Score"). Ignored for other types.
+#' @param main,sub,xlab,ylab Base plotting annotations.
+#' @param ... Additional plot options (type-specific).
+#'
+#' @return Invisibly, a small list describing the plot.
+#'
+#' @examples
+#' \donttest{
+#'   data(sample_prices_weekly)
+#'   b <- function(prices, params, ...) {
+#'     weight_equally(filter_top_n(calc_momentum(prices, params$lookback),
+#'                                 params$top_n))
+#'   }
+#'   wf <- run_walk_forward(
+#'     prices = sample_prices_weekly,
+#'     grid   = list(lookback = c(8, 12, 26), top_n = c(5, 10)),
+#'     builder = b,
+#'     is_periods = 52, oos_periods = 26, step = 26
+#'   )
+#'   plot(wf, type = "parameters")
+#'   plot(wf, type = "is_oos", metric = "OOS_Score")
+#' }
+#'
+#' @seealso [run_walk_forward()], [wf_report()], [print.wf_optimization_result()]
+#'
+#' @method plot wf_optimization_result
+#' @export
+#' @importFrom graphics axis box layout plot.new points title
+
+## ---- weighting.R ----
+#' Equal Weight Portfolio Construction
+#'
+#' @description
+#' Creates equal-weighted portfolio from selection matrix.
+#' The simplest and often most robust weighting scheme.
+#'
+#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#'
+#' @return Data.table with equal weights for selected securities
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, 10)
+#' weights <- weight_equally(selected)
+
+## ---- weighting.R ----
+#' Signal-Based Portfolio Weighting
+#'
+#' @description
+#' Weights selected securities proportionally to their signal strength.
+#' Stronger signals receive higher allocations.
+#'
+#' @param selected_df Binary selection matrix
+#' @param signal_df Signal values for weighting
+#'
+#' @return Data.table with signal-proportional weights
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, 10)
+#' # Weight by momentum strength
+#' weights <- weight_by_signal(selected, momentum)
+
+## ---- weighting.R ----
+#' Rank-Based Portfolio Weighting
+#'
+#' @description
+#' Weights securities based on their rank rather than raw signal values.
+#' Useful when signal magnitudes are unreliable but ordering is meaningful.
+#'
+#' @param selected_df Binary selection matrix
+#' @param signal_df Signal values for ranking
+#' @param method Weighting method: "linear" or "exponential"
+#' @param ascending Sort order for ranking (default: FALSE)
+#'
+#' @return Data.table with rank-based weights
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, 10)
+#' # Linear rank weighting (best gets most)
+#' weights <- weight_by_rank(selected, momentum, method = "linear")
+#' # Exponential (heavy on top stocks)
+#' weights_exp <- weight_by_rank(selected, momentum, method = "exponential")
+
+## ---- weighting.R ----
+#' Volatility-Based Portfolio Weighting
+#'
+#' @description
+#' Weights securities based on their volatility characteristics.
+#' Can prefer low-volatility (defensive) or high-volatility (aggressive) stocks.
+#'
+#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#' @param vol_timeframe_data Price data for volatility calculation (usually daily)
+#' @param strategy_timeframe_data Price data matching strategy frequency
+#' @param lookback_periods Number of periods for volatility (default: 26)
+#' @param low_vol_preference TRUE = lower vol gets higher weight (default: TRUE)
+#' @param vol_method "std", "range", "mad", or "abs_return"
+#' @param weighting_method "rank", "equal", or "inverse_variance"
+#'
+#' @return Data.table with volatility-based weights
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' data("sample_prices_daily")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, 10)
+#' daily_vol <- calc_rolling_volatility(sample_prices_daily, lookback = 252)
+#' aligned_vol <- align_to_timeframe(daily_vol, sample_prices_weekly$Date)
+#' weights <- weight_by_volatility(selected, aligned_vol, low_vol_preference = TRUE)
+
+## ---- weighting.R ----
+#' Regime-Based Adaptive Weighting
+#'
+#' @description
+#' Applies different weighting methods based on market regime classification.
+#' Enables adaptive strategies that change allocation approach in different
+#' market conditions.
+#'
+#' @param selected_df Binary selection matrix (1 = selected, 0 = not)
+#' @param regime Regime classification (integer values per period)
+#' @param signal_df Signal values (required for signal/rank methods)
+#' @param vol_timeframe_data Volatility data (required for volatility method)
+#' @param strategy_timeframe_data Strategy timeframe alignment data
+#' @param weighting_configs List with method-specific parameters
+#'
+#' @return Data.table with regime-adaptive weights
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' # Create selection and signals
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#'
+#' # Create a simple regime (example: based on market trend)
+#' ma20 <- calc_moving_average(sample_prices_weekly, 20)
+#' spy_price <- sample_prices_weekly$SPY
+#' spy_ma <- ma20$SPY
+#' regime <- ifelse(spy_price > spy_ma, 1, 2)
+#'
+#' # Different weights for bull/bear markets
+#' weighting_configs <- list(
+#'   "1" = list(method = "equal"),
+#'   "2" = list(method = "signal")
+#' )
+#' weights <- weight_by_regime(selected, regime, weighting_configs,
+#'                             signal_df = momentum)
+
+## ---- weighting.R ----
+#' Apply Weighting Method to Values
+#'
+#' @description
+#' Internal utility function that applies various weighting methods to a vector.
+#' Used by other weighting functions.
+#'
+#' @param values Named numeric vector of values to weight
+#' @param preference_ascending TRUE = prefer lower values, FALSE = prefer higher
+#'
+#' @return Named numeric vector of weights that sum to 1
+#' @keywords internal
+
+## ---- weighting.R ----
+#' Combine Multiple Weighting Schemes
+#'
+#' @description
+#' Blends multiple weight matrices with specified weights. Useful for
+#' multi-factor strategies that combine different allocation approaches.
+#' Optimized using matrix operations for 1000x+ speedup.
+#'
+#' @param weight_matrices List of weight data frames to combine
+#' @param weights Numeric vector of weights for each matrix (default: equal)
+#'
+#' @return Data.table with blended portfolio weights
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' # Calculate signals
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' volatility <- calc_rolling_volatility(sample_prices_weekly, lookback = 20)
+#'
+#' # Combine momentum and low-vol weights
+#' mom_weights <- weight_by_signal(selected, momentum)
+#' vol_weights <- weight_by_signal(selected, invert_signal(volatility))
+#' combined <- combine_weights(list(mom_weights, vol_weights), weights = c(0.7, 0.3))
+
+## ---- weighting.R ----
+#' Switch Between Weighting Schemes
+#'
+#' @description
+#' Dynamically switches between two weighting schemes based on a signal.
+#' Enables tactical allocation changes.
+#'
+#' @param weights_a Primary weight matrix
+#' @param weights_b Alternative weight matrix
+#' @param use_b_condition Logical vector (TRUE = use weights_b)
+#' @param partial_blend Blend factor 0-1 (default: 1 = full switch)
+#'
+#' @return Combined weight matrix
+#' @export
+#' @examples
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weights_equal <- weight_equally(selected)
+#' weights_signal <- weight_by_signal(selected, momentum)
+#'
+#' # Create switching signal (example: use SPY momentum as regime indicator)
+#' spy_momentum <- momentum$SPY
+#' switch_signal <- as.numeric(spy_momentum > median(spy_momentum, na.rm = TRUE))
+#' switch_signal[is.na(switch_signal)] <- 0
+#'
+#' # Switch between strategies
+#' final_weights <- switch_weights(weights_equal, weights_signal, switch_signal)
+
+## ---- weighting.R ----
+#' Optimized recursive bisection for HRP
+#' @keywords internal
+
+## ---- weighting.R ----
+#' Optimized cluster variance calculation
+#' @keywords internal
+
+## ---- weighting.R ----
+#' Hierarchical Risk Parity Weighting
+#'
+#' @description
+#' Calculates portfolio weights using Hierarchical Risk Parity (HRP) methodology.
+#' HRP combines hierarchical clustering with risk-based allocation to create
+#' diversified portfolios that don't rely on unstable correlation matrix inversions.
+#'
+#' @param selected_df Binary selection matrix (data.frame with Date column)
+#' @param prices_df Price data for covariance calculation (typically daily)
+#'                  Returns are calculated internally from prices
+#' @param lookback_periods Number of periods for covariance estimation (default: 252)
+#' @param cluster_method Clustering linkage method (default: "ward.D2")
+#' @param distance_method Distance measure for clustering (default: "euclidean")
+#' @param min_periods Minimum periods required for calculation (default: 60)
+#' @param use_correlation If TRUE, cluster on correlation instead of covariance
+#'
+#' @return Weight matrix with same dates as selected_df
+#'
+#' @details
+#' The HRP algorithm:
+#' 1. Calculate returns from input prices
+#' 2. Compute covariance matrix from returns
+#' 3. Cluster assets based on distance matrix
+#' 4. Apply recursive bisection with inverse variance weighting
+#' 5. Results in naturally diversified portfolio without matrix inversion
+#'
+#' The function accepts price data and calculates returns internally,
+#' matching the pattern of other library functions like calc_momentum().
+#'
+#' @export
+#' @examples
+#' data("sample_prices_daily")
+#' data("sample_prices_weekly")
+#' # Create a selection first
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#'
+#' # Using daily prices for risk calculation
+#' weights <- weight_by_hrp(selected, sample_prices_daily, lookback_periods = 252)
+#'
+#' # Using correlation-based clustering
+#' weights <- weight_by_hrp(selected, sample_prices_daily, use_correlation = TRUE)
+
+## ---- weighting.R ----
+#' Calculate HRP weights for a given returns matrix
+#' @keywords internal
+
+## ---- weighting.R ----
+#' Optimized recursive bisection for HRP
+#' @keywords internal
+
+## ---- weighting.R ----
+#' Optimized cluster variance calculation
+#' @keywords internal
+
+## ---- weighting.R ----
+#' Risk Parity Weighting Suite
+#'
+#' Collection of risk-based weighting methods for portfolio construction.
+#' Each method allocates capital based on risk characteristics rather than
+#' market capitalization or equal weights.
+#'
+#' @param selected_df Binary selection matrix (data.frame with Date column).
+#' @param prices_df Price data for risk calculations (typically daily).
+#'   Returns are calculated internally from prices.
+#' @param lookback_periods Number of periods for risk estimation (default: 252).
+#' @param min_periods Minimum periods required (default: 60).
+#' @param method Optimization method for risk parity.
+#'
+#' @details
+#' \strong{Methods}
+#' \describe{
+#'   \item{\code{inverse_vol}}{Weights proportional to 1 / volatility
+#'     (e.g., 1 / sd of returns over \code{lookback_periods}). Lower volatility
+#'     stocks receive higher weights.}
+#'   \item{\code{equal_risk}}{Equal Risk Contribution (ERC): finds weights so
+#'     each position contributes equally to total portfolio risk (iterative optimization).}
+#'   \item{\code{max_div}}{Maximum Diversification: maximizes the ratio of
+#'     weighted average volatility to portfolio volatility.}
+#' }
+#'
+#' The function accepts price data and calculates returns internally,
+#' ensuring consistency with other library functions. Daily prices are
+#' recommended for accurate volatility estimation.
+#'
+#' @return Weight matrix with the same dates as \code{selected_df}; each row sums to 1.
+#' @export
+#' @examples
+#' data("sample_prices_daily")
+#' data("sample_prices_weekly")
+#' momentum <- calc_momentum(sample_prices_weekly, lookback = 12)
+#' selected <- filter_top_n(momentum, n = 10)
+#' weight_by_risk_parity(selected, sample_prices_daily, method = "inverse_vol")
+#' weight_by_risk_parity(selected, sample_prices_daily, method = "equal_risk")
+#' weight_by_risk_parity(selected, sample_prices_daily, method = "max_div")
+
+## ---- weighting.R ----
+#' Calculate Equal Risk Contribution weights (simplified)
+#' @keywords internal
+
+## ---- weighting.R ----
+#' Calculate Maximum Diversification Portfolio weights
+#' @keywords internal
+

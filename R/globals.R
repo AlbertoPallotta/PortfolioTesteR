@@ -65,6 +65,7 @@ utils::globalVariables(c(
   'CASH'
 
 ))
+utils::globalVariables(c("..sy", "w_lag", "w", "turnover", "Slice", "Ret", "Ret_net"))
 
 # Note: The following are functions that should be imported via NAMESPACE,
 # not declared as global variables:
