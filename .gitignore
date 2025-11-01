@@ -14,17 +14,13 @@ vignettes/*_files/
 vignettes/*.utf8.md
 vignettes/*.knit.md
 vignettes/*.md
-
 # Quarto (if used)
 .quarto/
-
 # Misc platform / auth
 .DS_Store
 .httr-oauth
-
 # Optional: build-time metadata
 Meta/
-
 /doc/
 /Meta/
 doc
@@ -32,3 +28,5 @@ inst/doc
 README.html
 README_files
 .Rproj.user
+roxygen_dump.txt
+*.Rproj

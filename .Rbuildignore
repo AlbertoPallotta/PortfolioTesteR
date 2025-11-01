@@ -30,3 +30,7 @@ cran-comments.md
 ^rd_html_problems\.csv$
 ^rd_brace_issues\.csv$
 ^roxygen_dump\.txt$
+^\.git.*$
+^README\.Rmd$
+^pkgdown$
+^revdep$
