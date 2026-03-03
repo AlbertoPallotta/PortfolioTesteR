@@ -545,7 +545,7 @@ calc_rolling_volatility <- function(data, lookback = 20, method = "std") {
     # Keep original implementation for now
     for (col in symbol_cols) {
       vol_df[, (col) := frollapply(get(col),
-                                   n = lookback,
+                                   N = lookback,
                                    FUN = function(x) {
                                      valid_x <- x[!is.na(x)]
                                      if(length(valid_x) >= lookback * 0.8) {
@@ -570,7 +570,7 @@ calc_rolling_volatility <- function(data, lookback = 20, method = "std") {
     # Keep MAD as is
     for (col in symbol_cols) {
       vol_df[, (col) := frollapply(returns_dt[[col]],
-                                   n = lookback,
+                                   N = lookback,
                                    FUN = function(x) {
                                      valid_x <- x[!is.na(x)]
                                      if(length(valid_x) >= lookback * 0.8) {
