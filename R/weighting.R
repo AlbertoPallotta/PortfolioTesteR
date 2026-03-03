@@ -574,7 +574,7 @@ weight_by_volatility <- function(selected_df, vol_timeframe_data,
 #
 #     for (col in symbol_cols) {
 #       if (col %in% names(returns)) {
-#         rolling_vol[, (col) := frollapply(returns[[col]], n = lookback_periods,
+#         rolling_vol[, (col) := frollapply(returns[[col]], N = lookback_periods,
 #                                           FUN = function(x) {
 #                                             valid_x <- x[!is.na(x)]
 #                                             if(length(valid_x) >= lookback_periods * 0.8) {
@@ -591,7 +591,7 @@ weight_by_volatility <- function(selected_df, vol_timeframe_data,
 #     # RANGE METHOD: (max - min) / average with scaling for missed intraday
 #     for (col in symbol_cols) {
 #       if (col %in% names(vol_dt)) {
-#         rolling_vol[, (col) := frollapply(get(col), n = lookback_periods,
+#         rolling_vol[, (col) := frollapply(get(col), N = lookback_periods,
 #                                           FUN = function(x) {
 #                                             valid_x <- x[!is.na(x)]
 #                                             if(length(valid_x) >= lookback_periods * 0.8) {
@@ -619,7 +619,7 @@ weight_by_volatility <- function(selected_df, vol_timeframe_data,
 #
 #     for (col in symbol_cols) {
 #       if (col %in% names(returns)) {
-#         rolling_vol[, (col) := frollapply(returns[[col]], n = lookback_periods,
+#         rolling_vol[, (col) := frollapply(returns[[col]], N = lookback_periods,
 #                                           FUN = function(x) {
 #                                             valid_x <- x[!is.na(x)]
 #                                             if(length(valid_x) >= lookback_periods * 0.8) {
@@ -645,7 +645,7 @@ weight_by_volatility <- function(selected_df, vol_timeframe_data,
 #
 #     for (col in symbol_cols) {
 #       if (col %in% names(returns)) {
-#         rolling_vol[, (col) := frollapply(returns[[col]], n = lookback_periods,
+#         rolling_vol[, (col) := frollapply(returns[[col]], N = lookback_periods,
 #                                           FUN = function(x) {
 #                                             valid_x <- x[!is.na(x)]
 #                                             if(length(valid_x) >= lookback_periods * 0.8) {
