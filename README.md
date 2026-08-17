@@ -13,7 +13,7 @@ PortfolioTesteR is an R package designed for students and individual investors t
 
 - **English-like syntax**: Functions like `filter_top_n()`, `weight_equally()`, and `run_backtest()` are self-explanatory
 - **Educational focus**: Perfect for learning quantitative investing without getting lost in code complexity  
-- **Comprehensive toolkit**: 70+ functions covering everything from technical indicators to risk analysis
+- **Comprehensive toolkit**: 110+ functions functions covering everything from technical indicators to risk analysis
 - **Fast backtesting**: Optimized for testing strategies on large stock universes
 - **Ready-to-use data**: Includes sample price data to start testing immediately
 - **Realistic results**: Handles warmup periods, transaction tracking, and proper return calculations
@@ -134,3 +134,11 @@ MIT License
 ## Contributing
 
 We welcome contributions! Please feel free to submit issues and pull requests on [GitHub](https://github.com/AlbertoPallotta/PortfolioTesteR).
+## Thesis reproducibility
+
+The version described in the doctoral thesis is PortfolioTesteR v0.1.4,
+identical to the current CRAN release. Install it with:
+
+    install.packages("PortfolioTesteR")
+    # or pin the exact tagged snapshot:
+    remotes::install_github("AlbertoPallotta/PortfolioTesteR@v0.1.4")

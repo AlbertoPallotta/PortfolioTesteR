@@ -30,3 +30,5 @@ README_files
 .Rproj.user
 roxygen_dump.txt
 *.Rproj
+..Rcheck/
+rd_check/
