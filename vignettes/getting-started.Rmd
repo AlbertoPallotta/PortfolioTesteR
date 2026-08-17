@@ -29,7 +29,7 @@ PortfolioTesteR makes quantitative investing accessible through intuitive, Engli
 ```{r install, eval=FALSE}
 # Install from GitHub
 # (Skip during CRAN checks and vignette builds.)
-devtools::install_github("alb3rtazzo/PortfolioTesteR")
+devtools::install_github("AlbertoPallotta/PortfolioTesteR")
 ```
 
 ## Load the Library
@@ -392,5 +392,5 @@ summary(res_yh)
 
 If you use PortfolioTesteR in your research, please cite:
 
-> Pallotta, A. (2025). *PortfolioTesteR: Test Investment Strategies with English-Like Code.* R package version 0.1.2. https://github.com/AlbertoPallotta/PortfolioTesteR
+> Pallotta, A. (2025). *PortfolioTesteR: Test Investment Strategies with English-Like Code.* R package version 0.1.4. https://github.com/AlbertoPallotta/PortfolioTesteR
 
