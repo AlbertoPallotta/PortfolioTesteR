@@ -1,13 +1,15 @@
 # PortfolioTesteR 0.1.4
 
 ## New
-- Add helpers for Chapter 3 workflow:
-  - `ml_backtest_multi()` — run ML backtests across multiple horizons.
-  - `pt_collect_results()` — gather coverage/IC/turnover/cost-sweep diagnostics.
-  - `scores_oos_only()` — keep scores only on OOS decision dates.
+- `ml_backtest_multi()` — run ML backtests across multiple horizons/schedules.
+- `pt_collect_results()` — one-call collector for coverage, IC (raw & OOS-only), turnover, perf tables, and cost sweeps.
+- `scores_oos_only()` — keep scores only on OOS decision dates.
 
-## Docs
-- Vignettes stabilized on knitr/rmarkdown (no Quarto dependency during check).
+## Improvements
+- Vignettes stabilized on knitr/rmarkdown (no Quarto dependency during checks).
+- Expanded `R/globals.R` to silence data.table NSE NOTES.
+- Regenerated docs with UTF-8 to avoid Non-ASCII warnings.
 
-## Maintenance
-- Extend globals to silence data.table NSE notes.
+## Compatibility
+- No breaking API changes.
+
